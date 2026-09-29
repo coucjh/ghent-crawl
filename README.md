@@ -47,7 +47,8 @@ show the answer. Needs ffmpeg (`brew install ffmpeg`).
 2. In the Vercel project: **Storage → Create → Neon** (pick an EU region, e.g. Frankfurt). This sets `DATABASE_URL`
    and gives every Preview deployment its own database branch.
 3. **Storage → Create → Blob** (EU region, **private** access if asked) for the photo challenges. This sets
-   `BLOB_READ_WRITE_TOKEN`. Without it, photo uploads on Vercel fail with a message saying so.
+   `BLOB_READ_WRITE_TOKEN` or `BLOB_STORE_ID` (keep the default `BLOB` prefix), then redeploy. The app creates the
+   photo files itself. Without it, photo uploads on Vercel fail with a message saying so.
 4. **Settings → Environment Variables**: set `ABBOT_SECRET` (the Abbots' password) and `SESSION_SECRET`
    (`openssl rand -base64 32`) for Production and Preview.
 5. Deploy. `npm run build` runs the database migrations first.

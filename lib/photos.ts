@@ -6,7 +6,8 @@ import path from "node:path";
 // Where photo-challenge photos live. Keys look like "<teamId>/<uuid>.jpg" and are served only through /photos/<key>,
 // which checks the viewer. Production: private Vercel Blob. Local dev: ./.uploads (git-ignored).
 
-const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN;
+// A connected Blob store provides either a read-write token or a store id (authenticated by Vercel's OIDC token).
+const useBlob = !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
 const LOCAL_DIR = path.join(process.cwd(), ".uploads");
 const blobPath = (key: string) => `photos/${key}`;
 const KEY = /^[\w-]+\/[\w-]+\.jpg$/;
@@ -24,7 +25,9 @@ export async function storePhoto(teamId: string, jpeg: ArrayBuffer): Promise<str
     const { put } = await import("@vercel/blob");
     await put(blobPath(key), Buffer.from(jpeg), { access: "private", contentType: "image/jpeg", addRandomSuffix: false });
   } else if (process.env.VERCEL) {
-    throw new Error("Photo storage isn't set up: add a Blob store to this Vercel project (Storage → Blob).");
+    throw new Error(
+      "Photo storage isn't set up: connect a Blob store to this Vercel project (Storage → Blob), then redeploy.",
+    );
   } else {
     await mkdir(path.join(LOCAL_DIR, teamId), { recursive: true });
     await writeFile(path.join(LOCAL_DIR, key), Buffer.from(jpeg));
