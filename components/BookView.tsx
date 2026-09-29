@@ -93,7 +93,7 @@ export function BookView({ book, highlight }: { book: Book; highlight?: string }
   if (book.state === "open")
     return (
       <>
-        <Race standings={book.standings} track={book.track} highlight={highlight} />
+        <Race standings={book.standings} rounds={book.rounds} highlight={highlight} />
         <Standings standings={book.standings} highlight={highlight} />
       </>
     );
@@ -103,7 +103,7 @@ export function BookView({ book, highlight }: { book: Book; highlight?: string }
     <>
       <Reveal standings={book.standings} highlight={highlight} />
       <motion.div className="mt-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: revealEnds, duration: 0.6 }}>
-        <Race standings={book.standings} track={book.track} highlight={highlight} startDelay={revealEnds} />
+        <Race standings={book.standings} rounds={book.rounds} highlight={highlight} startDelay={revealEnds} />
       </motion.div>
     </>
   );

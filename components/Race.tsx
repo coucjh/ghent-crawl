@@ -1,93 +1,101 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
-import type { Standing, Track } from "@/lib/game";
+import type { RoundProgress, Standing } from "@/lib/game";
+import type { StationStatus } from "@/lib/types";
 
 const RUN_SECONDS = 1.6;
 const LANE_STAGGER = 0.2;
 
+const STATE: Record<StationStatus, { text: string; mark: string; className: string }> = {
+  closed: { text: "complete", mark: "✓", className: "border-verdigris/50 text-verdigris" },
+  open: { text: "started", mark: "●", className: "border-oxblood bg-oxblood text-vellum-light" },
+  sealed: { text: "not yet", mark: "○", className: "border-ink-soft/30 text-ink-soft/70" },
+};
+
+/** Where the night has got to: every round in order, not yet → started → complete. */
+function RoundStrip({ rounds }: { rounds: RoundProgress[] }) {
+  return (
+    <ol className="mb-4 flex flex-wrap justify-center gap-1.5" aria-label="Rounds">
+      {rounds.map((r) => {
+        const s = STATE[r.status];
+        return (
+          <li key={r.id} className={`border px-2 py-0.5 text-sm ${s.className}`}>
+            <span aria-hidden>{s.mark}</span> {r.name} <span className="smallcaps">· {s.text}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 /**
- * The Book as a race. Each Order has its own lane; the track is split into one segment per round (each Station, and
- * the Pilgrimage), as long as the points it offers. On arrival every token runs from where it stood before the last
- * round to where it stands now, so the Book replays the most recent round.
+ * The Book as a race of scores: each Order runs in its own lane, placed relative to the leader. On arrival every
+ * token runs from where it stood before the latest round to where it stands now, with the points it just gained.
  */
 export function Race({
   standings,
-  track,
+  rounds,
   highlight,
   startDelay = 0,
 }: {
   standings: Standing[];
-  track: Track;
+  rounds: RoundProgress[];
   highlight?: string;
   startDelay?: number;
 }) {
   const reduce = useReducedMotion();
   const lanes = [...standings].sort((a, b) => a.lane - b.lane);
-  const pct = (score: number) => `${(score / track.total) * 100}%`;
+  const best = Math.max(1, ...standings.map((s) => s.score));
+  const bestBefore = Math.max(1, ...standings.map((s) => s.previousScore));
+  // The leader sits at 78% so its score still fits beside the token.
+  const at = (score: number, top: number) => `${(score / top) * 78}%`;
 
   return (
     <figure className="mb-6">
-      <figcaption className="smallcaps mb-1 text-center text-sm text-ink-soft">
-        {track.last ? `The run of ${track.last}` : "At the starting line"}
-      </figcaption>
-
-      <div className="relative mx-5">
-        {/* Station gates: a faint rule where each Station's points end, the finish in oxblood. */}
-        <div className="relative h-5" aria-hidden>
-          {track.gates.map((g) => (
-            <span key={g.id} className="smallcaps absolute -translate-x-1/2 text-xs text-ink-soft" style={{ left: pct(g.at) }}>
-              {g.label}
-            </span>
-          ))}
-        </div>
-        <div className="pointer-events-none absolute inset-x-0 top-5 bottom-0" aria-hidden>
-          <span className="absolute inset-y-0 left-0 border-l border-gilt" />
-          {track.gates.map((g, i) => (
-            <span
-              key={g.id}
-              className={`absolute inset-y-0 ${i === track.gates.length - 1 ? "border-l-2 border-oxblood" : "border-l border-dashed border-gilt/70"}`}
-              style={{ left: pct(g.at) }}
-            />
-          ))}
-        </div>
-
-        <ol>
-          {lanes.map((s, i) => {
-            const delta = s.score - s.previousScore;
-            const delay = reduce ? 0 : startDelay + 0.4 + i * LANE_STAGGER;
-            const duration = reduce ? 0 : RUN_SECONDS;
-            return (
-              <li
-                key={s.teamId}
-                className={`relative h-14 border-b border-vellum-deep ${s.teamId === highlight ? "bg-gilt/15" : ""}`}
-                aria-label={`${s.name}: ${s.score} of ${track.total}`}
+      <RoundStrip rounds={rounds} />
+      <ol className="border-l border-gilt">
+        {lanes.map((s, i) => {
+          const delta = s.score - s.previousScore;
+          const delay = reduce ? 0 : startDelay + 0.4 + i * LANE_STAGGER;
+          const duration = reduce ? 0 : RUN_SECONDS;
+          return (
+            <li
+              key={s.teamId}
+              className={`relative h-14 border-b border-vellum-deep ${s.teamId === highlight ? "bg-gilt/15" : ""}`}
+              aria-label={`${s.name}: ${s.score} points`}
+            >
+              <span className="absolute top-0.5 left-2 max-w-[70%] truncate text-xs text-ink-soft">{s.name}</span>
+              <motion.span
+                className="absolute top-[60%] flex items-center gap-1.5 whitespace-nowrap pl-1"
+                style={{ y: "-50%" }}
+                initial={{ left: at(s.previousScore, bestBefore) }}
+                animate={{ left: at(s.score, best) }}
+                transition={{ delay, duration, ease: [0.3, 0, 0.2, 1] }}
               >
-                <span className="absolute top-0.5 right-1 max-w-[55%] truncate bg-vellum-light px-1 text-xs text-ink-soft">{s.name}</span>
                 <motion.span
-                  className="absolute top-[58%] text-3xl leading-none"
-                  style={{ x: "-50%", y: "-50%" }}
-                  initial={{ left: pct(s.previousScore) }}
-                  animate={{ left: pct(s.score), rotate: delta > 0 && !reduce ? [0, -12, 10, -12, 10, 0] : 0 }}
-                  transition={{ delay, duration, ease: [0.3, 0, 0.2, 1] }}
+                  className="text-3xl leading-none"
+                  animate={{ rotate: delta > 0 && !reduce ? [0, -12, 10, -12, 10, 0] : 0 }}
+                  transition={{ delay, duration }}
                 >
                   {s.emoji}
-                  {delta > 0 && (
-                    <motion.span
-                      className="absolute -top-2 left-full ml-0.5 text-sm font-semibold text-verdigris"
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: delay + duration, duration: 0.4 }}
-                    >
-                      +{delta}
-                    </motion.span>
-                  )}
                 </motion.span>
-              </li>
-            );
-          })}
-        </ol>
-      </div>
+                <span className="text-xl font-semibold tabular-nums">{s.score}</span>
+                {delta > 0 && (
+                  <motion.span
+                    className="text-sm font-semibold text-verdigris"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: delay + duration, duration: 0.4 }}
+                  >
+                    +{delta}
+                  </motion.span>
+                )}
+              </motion.span>
+            </li>
+          );
+        })}
+      </ol>
     </figure>
   );
 }

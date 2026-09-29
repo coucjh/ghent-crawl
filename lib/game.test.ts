@@ -179,7 +179,7 @@ describe("picture and music questions", () => {
 });
 
 describe("the race", () => {
-  it("lays one track segment per Station and remembers where each Order stood before the last one", async () => {
+  it("lists every round's state and remembers where each Order stood before the last one", async () => {
     const a = await order("A");
     const b = await order("B");
     await g.openStation(1);
@@ -190,19 +190,15 @@ describe("the race", () => {
 
     let book = await g.getBook();
     if (book.state !== "open") throw new Error(book.state);
-    expect(book.track).toEqual({
-      total: 26,
-      gates: [
-        { id: 1, label: "I", at: 9 },
-        { id: 2, label: "II", at: 10 },
-        { id: g.pilgrimageId(1), label: "✦I", at: 13 },
-        { id: 3, label: "III", at: 16 },
-        { id: 4, label: "IV", at: 17 },
-        { id: g.pilgrimageId(2), label: "✦II", at: 25 },
-        { id: 5, label: "V", at: 26 },
-      ],
-      last: "Station I",
-    });
+    expect(book.rounds).toEqual([
+      { id: 1, name: "Station I", status: "closed" },
+      { id: 2, name: "Station II", status: "sealed" },
+      { id: g.pilgrimageId(1), name: "The First Pilgrimage", status: "open" },
+      { id: 3, name: "Station III", status: "sealed" },
+      { id: 4, name: "Station IV", status: "sealed" },
+      { id: g.pilgrimageId(2), name: "The Painters' Pilgrimage", status: "sealed" },
+      { id: 5, name: "Station V", status: "sealed" },
+    ]);
     expect(book.standings).toMatchObject([
       { name: "A", score: 3, previousScore: 0, lane: 0 },
       { name: "B", score: 0, previousScore: 0, lane: 1 },
@@ -214,7 +210,7 @@ describe("the race", () => {
     await g.closeStation(2);
     book = await g.getBook();
     if (book.state !== "open") throw new Error(book.state);
-    expect(book.track.last).toBe("Station II");
+    expect(book.rounds.find((r) => r.id === 2)!.status).toBe("closed");
     expect(book.standings).toMatchObject([
       { name: "A", score: 3, previousScore: 3 },
       { name: "B", score: 1, previousScore: 0 },
@@ -274,12 +270,12 @@ describe("the Pilgrimages", () => {
     let book = await g.getBook();
     if (book.state !== "open") throw new Error(book.state);
     expect(book.standings[0]).toMatchObject({ score: 1, previousScore: 0 });
-    expect(book.track.last).toBe("the First Pilgrimage");
+    expect(book.rounds.find((r) => r.id === g.pilgrimageId(1))!.status).toBe("closed");
 
     await g.closeStation(3);
     book = await g.getBook();
     if (book.state !== "open") throw new Error(book.state);
-    expect(book.track.last).toBe("Station III");
+    expect(book.rounds.find((r) => r.id === 3)!.status).toBe("closed");
     expect(book.standings[0]).toMatchObject({ score: 1, previousScore: 1 });
   });
 });

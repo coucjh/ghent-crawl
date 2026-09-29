@@ -541,7 +541,7 @@ export type Standing = {
   lane: number;
 };
 
-/** The round whose points landed most recently (rounds close in track order), or null. */
+/** The round whose points landed most recently (rounds close in running order), or null. */
 function lastClosedRound(states: Map<number, StationState>): number | null {
   return ROUNDS_IN_ORDER.findLast((r) => states.get(r.id)!.status === "closed")?.id ?? null;
 }
@@ -578,32 +578,30 @@ export async function getStandings(): Promise<Standing[]> {
     .sort((a, b) => b.score - a.score);
 }
 
-/** The race track: one segment per round, as long as the points it offers. `last` names the round just run. */
-export type Track = { total: number; gates: { id: number; label: string; at: number }[]; last: string | null };
+/** Every round in the order it runs, with its state — the Book's "where are we" strip. */
+export type RoundProgress = { id: number; name: string; status: StationStatus };
 
-function track(states: Map<number, StationState>): Track {
-  let at = 0;
-  const gates = ROUNDS_IN_ORDER.map((r) => {
-    at += maxPoints(r.questions);
-    return { id: r.id, label: r.label, at };
-  });
-  const last = lastClosedRound(states);
-  return { total: at, gates, last: last === null ? null : roundName(last) };
+function roundProgress(states: Map<number, StationState>): RoundProgress[] {
+  return ROUNDS_IN_ORDER.map((r) => ({
+    id: r.id,
+    name: isPilgrimage(r.id) ? r.name : `Station ${r.label}`,
+    status: states.get(r.id)!.status,
+  }));
 }
 
 export type Book =
-  | { state: "open"; standings: Standing[]; track: Track }
+  | { state: "open"; standings: Standing[]; rounds: RoundProgress[] }
   | { state: "sealed" }
-  | { state: "revealed"; standings: Standing[]; track: Track };
+  | { state: "revealed"; standings: Standing[]; rounds: RoundProgress[] };
 
 /** The leaderboard as players see it: hidden from the moment the final Station opens until the Abbots reveal it. */
 export async function getBook(): Promise<Book> {
   const states = await getStationStates();
   const db = await getDb();
   const [g] = await db.select().from(game).where(eq(game.id, 1));
-  if (g?.revealedAt) return { state: "revealed", standings: await getStandings(), track: track(states) };
+  if (g?.revealedAt) return { state: "revealed", standings: await getStandings(), rounds: roundProgress(states) };
   if (states.get(FINAL_STATION.id)!.status !== "sealed") return { state: "sealed" };
-  return { state: "open", standings: await getStandings(), track: track(states) };
+  return { state: "open", standings: await getStandings(), rounds: roundProgress(states) };
 }
 
 export async function reveal(): Promise<Result> {

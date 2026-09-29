@@ -17,7 +17,7 @@ Decisions made while designing the Ghent Abbey Crawl, and what comes next. Diffi
 | A Station | Abbot opens it → Orders speak **the Word** (a passcode the barkeep holds) → answer on one scrolling manuscript, auto-saved, last save wins → optionally **Seal** early → Abbot closes it. One Station open at a time, in order. |
 | Last Orders | Abbot starts a 2-minute countdown (a draining pint); the Station closes itself at zero. |
 | Marking | On close: free text fuzzy-matched (case, accents, articles, small typos), choices exact. Scores publish instantly. Orders see marked answers and may **Appeal**; Abbots grant or deny. |
-| Book of Judgement | A race (one lane per Order, one track segment per Station) plus the ranked list. Replays the last round's movement. Sealed once the final Station opens; Abbots reveal it last-to-first with confetti. |
+| Book of Judgement | A strip of every round (not yet → started → complete), a race of scores (one lane per Order, placed relative to the leader, replaying the last round's gains) and the ranked list. Sealed once the final Station opens; Abbots reveal it last-to-first with confetti. |
 | Abbot tools | Grant entry without the Word, rename/delete Orders, Reset the Abbey. |
 | Stack | Next.js on Vercel, Neon Postgres (EU), Drizzle. Deploys on every push to `master`; Preview deploys get their own database branch. |
 
@@ -32,8 +32,8 @@ Decisions made while designing the Ghent Abbey Crawl, and what comes next. Diffi
 - **The First Pilgrimage** opens with Station I and closes when Station III opens (music and questions).
 - **The Painters' Pilgrimage** opens as Station III opens and closes when Station V opens (painting re-enactments).
 - Open/close Stations are set per Pilgrimage in `content/quiz.ts`. The hand-over at III happens in one step.
-- **Points stay hidden until a Pilgrimage closes**, then land all at once, each as its own segment of the race
-  (I · II · ✦I · III · IV · ✦II · V). The Painters' points first appear in the final reveal, since the Book is sealed
+- **Points stay hidden until a Pilgrimage closes**, then land all at once (the race replays that jump). The Book's
+  round strip runs I · II · ✦I · III · IV · ✦II · V. The Painters' points first appear in the final reveal, since the Book is sealed
   from the moment Station V opens.
 
 ### 🎵 Music questions 🟢 — built
