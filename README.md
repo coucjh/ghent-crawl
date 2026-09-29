@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# The Ghent Abbey Crawl
 
-## Getting Started
+A pub-crawl quiz for one night in Ghent. Four **Orders** (teams) travel together through five **Stations** (pubs).
+At each, the barkeep holds **the Word** that unlocks that Station's questions. **The Abbots** (admins) open and
+close each Station, settle **Appeals**, and finally reveal **the Book of Judgement** (leaderboard).
 
-First, run the development server:
+## Run it locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev          # http://localhost:3000 — uses an embedded database in ./.pglite, no setup needed
+npm test             # game rules + answer marking
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Players: open `/`. Add `?dev` (e.g. `/?dev`) to see each Station's Word on screen while testing (never in production).
+- Abbots: open `/abbot`. Local password is `abbot`.
+- Start over: *Reset the Abbey* at the bottom of `/abbot`, or delete `./.pglite`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Edit the quiz
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Everything lives in [`content/quiz.ts`](content/quiz.ts): Station names, pubs, Words and questions.
 
-## Learn More
+- `type: "text"` questions list every accepted `answers`. Marking ignores case, accents, punctuation and a leading
+  "the/de/het…", and forgives 1 typo (answers of 5+ letters) or 2 (8+). Numbers must be exact.
+- `type: "choice"` questions list `options` and the one correct `answer`.
+- `points` is optional (default 1).
+- Correct answers never reach the browser until a Station closes.
 
-To learn more about Next.js, take a look at the following resources:
+## Deploy to Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Push this repo to GitHub and import it in Vercel.
+2. In the Vercel project: **Storage → Create → Neon** (pick an EU region, e.g. Frankfurt). This sets `DATABASE_URL`
+   and gives every Preview deployment its own database branch.
+3. **Settings → Environment Variables**: set `ABBOT_SECRET` (the Abbots' password) and `SESSION_SECRET`
+   (`openssl rand -base64 32`) for Production and Preview.
+4. Deploy. `npm run build` runs the database migrations first.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Rehearse on a Preview deployment, then press *Reset the Abbey* on Production before the night.
 
-## Deploy on Vercel
+## How a Station runs
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+sealed ──Abbot: Open──► open ──Order speaks the Word──► answering ──(optional) Seal your answers
+                          │
+                          └──Abbot: Last Orders (2 min countdown, auto-closes) or Close now──► closed
+closed: answers auto-marked, scores published, Orders may Appeal → Abbot grants/denies.
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The Book of Judgement is visible between Stations, sealed once the final Station opens, and revealed by the Abbots.
+
+## Code map
+
+| Path | What |
+|---|---|
+| `lib/game.ts` | Every game rule. Pages and actions call these; nothing else touches the tables. |
+| `lib/marking.ts` | Answer normalisation and fuzzy matching. |
+| `lib/db/schema.ts` | Drizzle schema. After changing it: `npx drizzle-kit generate`. |
+| `lib/session.ts` | Signed cookies for players and Abbots. |
+| `app/actions.ts`, `app/abbot/actions.ts` | Server actions. |
+| `components/` | UI. `WaxSeal` / `SealBreak` are the signature pieces. |
+
+## Later phases
+
+- **Picture round**: add an `image` field to questions, put images in `/public`.
+- **Music round**: Abbots play clips over the bar's speaker, phones just collect answers.
+- **Pilgrimages** (photo challenges between pubs): Vercel Blob uploads + an Abbot review screen.

@@ -1,26 +1,146 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-vellum: #e6d5ae;
+  --color-vellum-light: #f1e6c8;
+  --color-vellum-deep: #d6c192;
+  --color-ink: #231710;
+  --color-ink-soft: #5a4633;
+  --color-oxblood: #6b1420;
+  --color-oxblood-deep: #470b14;
+  --color-gilt: #b08a3e;
+  --color-gilt-bright: #d4af5a;
+  --color-verdigris: #2f5a46;
+
+  --font-display: var(--font-blackletter), "Old English Text MT", serif;
+  --font-serif: var(--font-garamond), Garamond, "Times New Roman", serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--color-vellum);
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-serif);
+  color: var(--color-ink);
+  /* Vellum: a soft vignette plus fine paper grain. */
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .2 0 0 0 0 .1 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 50% 30%, var(--color-vellum-light) 0%, var(--color-vellum) 55%, var(--color-vellum-deep) 100%);
+  background-attachment: fixed;
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+
+.smallcaps {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.08em;
+}
+
+/* The beer-label frame: a double rule with notched corners. */
+.label-frame {
+  position: relative;
+  background: color-mix(in srgb, var(--color-vellum-light) 70%, transparent);
+  border: 1px solid var(--color-gilt);
+  /* Second, inner rule (an outline would be cut off by the notched clip-path). */
+  box-shadow:
+    inset 0 0 0 4px color-mix(in srgb, var(--color-vellum-light) 70%, transparent),
+    inset 0 0 0 5px var(--color-gilt);
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+  margin: 5px;
+}
+
+.rule {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--color-gilt);
+}
+.rule::before,
+.rule::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to var(--dir, right), transparent, var(--color-gilt));
+}
+.rule::after {
+  --dir: left;
+}
+
+.field {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-ink-soft);
+  padding: 0.35rem 0.1rem;
+  font: inherit;
+  color: var(--color-ink);
+}
+.field::placeholder {
+  color: color-mix(in srgb, var(--color-ink-soft) 60%, transparent);
+  font-style: italic;
+}
+.field:focus {
+  outline: none;
+  border-bottom-color: var(--color-oxblood);
+  box-shadow: 0 1px 0 var(--color-oxblood);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  background: var(--color-oxblood);
+  color: var(--color-vellum-light);
+  border: 1px solid var(--color-oxblood-deep);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-gilt-bright) 45%, transparent);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.1em;
+  font-size: 1.15rem;
+  transition: background-color 150ms, transform 100ms;
+}
+.btn:hover {
+  background: var(--color-oxblood-deep);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.btn-quiet {
+  background: transparent;
+  color: var(--color-oxblood);
+  border-color: var(--color-oxblood);
+  box-shadow: none;
+}
+.btn-quiet:hover {
+  background: color-mix(in srgb, var(--color-oxblood) 8%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-oxblood);
+  outline-offset: 3px;
+}
+
+/* Illuminated initial: the first letter of each question. */
+.initial {
+  float: left;
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin: 0.2rem 0.6rem 0 0;
+  background: var(--color-oxblood);
+  color: var(--color-gilt-bright);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 1;
+  border: 1px solid var(--color-gilt);
+  outline: 1px solid var(--color-oxblood);
+  outline-offset: 2px;
 }
