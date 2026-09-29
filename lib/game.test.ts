@@ -140,6 +140,44 @@ describe("a Station", () => {
   });
 });
 
+describe("picture and music questions", () => {
+  it("sends the picture and clip, splits music into Artist and Song boxes, and marks each", async () => {
+    const a = await order("A");
+    for (const id of [1, 2]) {
+      await g.openStation(id);
+      await g.closeStation(id);
+    }
+    await g.openStation(3);
+    await g.grantEntry(a.id, 3);
+
+    const open = (await g.getStationView(a.id, 3))!;
+    expect(open.questions![0]).toMatchObject({ image: "/media/p1.jpg", parts: [{ id: "q1", kind: "text" }] });
+    expect(open.questions![1]).toMatchObject({
+      clip: "/media/m1.mp3",
+      parts: [
+        { id: "q2.artist", label: "Artist", kind: "text" },
+        { id: "q2.song", label: "Song", kind: "text" },
+      ],
+    });
+    expect(JSON.stringify(open)).not.toContain("Sneaky Snitch");
+    expect(open.maxScore).toBe(3);
+
+    expect((await g.saveAnswer(a.id, 3, "q2", "whole question")).ok).toBe(false); // must answer a part
+    await g.saveAnswer(a.id, 3, "q2.artist", "kevin macleod");
+    await g.saveAnswer(a.id, 3, "q2.song", "Sneaky Snatch");
+    await g.saveAnswer(a.id, 3, "q1", "Belfort");
+    await g.closeStation(3);
+
+    const marked = (await g.getStationView(a.id, 3))!;
+    expect(marked.score).toBe(2); // artist + a one-letter typo in the song
+    expect(marked.corrections).toMatchObject({ q1: "Gravensteen", "q2.artist": "Kevin MacLeod", "q2.song": "Sneaky Snitch" });
+
+    await g.saveAnswer(a.id, 3, "q2.song", "x"); // closed: ignored
+    expect((await g.appeal(a.id, 3, "q1")).ok).toBe(true);
+    expect((await g.getDisputes())[0]).toMatchObject({ prompt: "What is this?", given: "Belfort" });
+  });
+});
+
 describe("the race", () => {
   it("lays one track segment per Station and remembers where each Order stood before the last one", async () => {
     const a = await order("A");
@@ -153,9 +191,16 @@ describe("the race", () => {
     let book = await g.getBook();
     if (book.state !== "open") throw new Error(book.state);
     expect(book.track).toEqual({
-      total: 13,
-      gates: [1, 2, 3, 4, 5].map((stationId, i) => ({ stationId, at: 9 + i })),
-      lastStation: 1,
+      total: 18,
+      gates: [
+        { id: 1, label: "I", at: 9 },
+        { id: 2, label: "II", at: 10 },
+        { id: 3, label: "III", at: 13 },
+        { id: g.PILGRIMAGE_ID, label: "✦", at: 16 },
+        { id: 4, label: "IV", at: 17 },
+        { id: 5, label: "V", at: 18 },
+      ],
+      last: "Station I",
     });
     expect(book.standings).toMatchObject([
       { name: "A", score: 3, previousScore: 0, lane: 0 },
@@ -168,11 +213,67 @@ describe("the race", () => {
     await g.closeStation(2);
     book = await g.getBook();
     if (book.state !== "open") throw new Error(book.state);
-    expect(book.track.lastStation).toBe(2);
+    expect(book.track.last).toBe("Station II");
     expect(book.standings).toMatchObject([
       { name: "A", score: 3, previousScore: 3 },
       { name: "B", score: 1, previousScore: 0 },
     ]);
+  });
+});
+
+describe("the Pilgrimage", () => {
+  const P = g.PILGRIMAGE_ID;
+  const hold = async (id: number) => {
+    await g.openStation(id);
+    await g.closeStation(id);
+  };
+
+  it("opens with Station I, needs no Word, stays open between pubs, and closes when Station IV opens", async () => {
+    const a = await order("A");
+    expect((await g.getStationStates()).get(P)!.status).toBe("sealed");
+    expect((await g.saveAnswer(a.id, P, "q1", "Bavo")).ok).toBe(false);
+
+    await g.openStation(1);
+    expect((await g.getStationStates()).get(P)!.status).toBe("open");
+    const view = (await g.getStationView(a.id, P))!;
+    expect(view).toMatchObject({ unlocked: true, sealed: false, score: null, maxScore: 3 });
+    expect((await g.saveAnswer(a.id, P, "q1", "Bavo")).ok).toBe(true); // no Word needed
+    expect((await g.sealAnswers(a.id, P)).ok).toBe(false);
+    expect((await g.callLastOrders(P)).ok).toBe(false);
+
+    await g.closeStation(1);
+    await hold(2);
+    await hold(3);
+    expect((await g.saveAnswer(a.id, P, "q2.song", "sneaky snitch")).ok).toBe(true); // between pubs
+    expect((await g.getStationStates()).get(P)!.status).toBe("open");
+
+    await g.openStation(4);
+    expect((await g.getStationStates()).get(P)!.status).toBe("closed");
+    expect((await g.saveAnswer(a.id, P, "q2.artist", "Kevin MacLeod")).ok).toBe(false);
+    expect((await g.getStationView(a.id, P))!.score).toBe(2);
+  });
+
+  it("keeps its points hidden until it closes, then lands them as its own segment of the race", async () => {
+    const a = await order("A");
+    await g.openStation(1);
+    await g.saveAnswer(a.id, P, "q1", "Saint Bavo");
+    await g.closeStation(1);
+    await hold(2);
+    await hold(3);
+    expect((await g.getStandings())[0].score).toBe(0);
+
+    await g.openStation(4);
+    let book = await g.getBook();
+    if (book.state !== "open") throw new Error(book.state);
+    expect(book.standings[0]).toMatchObject({ score: 1, previousScore: 0 });
+    expect(book.track.gates.map((gate) => gate.label)).toEqual(["I", "II", "III", "✦", "IV", "V"]);
+    expect(book.track.last).toBe("the Pilgrimage");
+
+    await g.closeStation(4);
+    book = await g.getBook();
+    if (book.state !== "open") throw new Error(book.state);
+    expect(book.track.last).toBe("Station IV");
+    expect(book.standings[0]).toMatchObject({ score: 1, previousScore: 1 });
   });
 });
 

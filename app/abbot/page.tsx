@@ -2,8 +2,18 @@ import { ActionButton, LoginForm, RenameForm, ResetForm } from "@/components/abb
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { LastOrders } from "@/components/Countdown";
 import { roman, WaxSeal } from "@/components/WaxSeal";
-import { STATIONS } from "@/content/quiz";
-import { getBook, getDisputes, getStandings, getStationStates, getTeamProgress } from "@/lib/game";
+import { PILGRIMAGE, STATIONS } from "@/content/quiz";
+import {
+  PILGRIMAGE_ID,
+  answerBoxes,
+  getAnswerCounts,
+  getBook,
+  getDisputes,
+  getStandings,
+  getStationStates,
+  getTeamProgress,
+  roundName,
+} from "@/lib/game";
 import { isAbbot } from "@/lib/session";
 import {
   closeStationAction,
@@ -62,6 +72,9 @@ export default async function AbbotPage() {
   const progress = openStation ? await getTeamProgress(openStation.id) : new Map<string, { sealed: boolean }>();
   const finalClosed = states.get(STATIONS[STATIONS.length - 1].id)!.status === "closed";
   const openClosesAt = openStation && states.get(openStation.id)!.closesAt;
+  const pilgrimageStatus = states.get(PILGRIMAGE_ID)!.status;
+  const pilgrimageCounts = pilgrimageStatus === "open" ? await getAnswerCounts(PILGRIMAGE_ID) : new Map<string, number>();
+  const pilgrimageBoxes = answerBoxes(PILGRIMAGE_ID);
 
   return (
     <>
@@ -140,6 +153,29 @@ export default async function AbbotPage() {
             );
           })}
         </ul>
+        <div className={`mt-5 border-t border-gilt pt-4 ${pilgrimageStatus === "open" ? "-mx-2 border-l-4 border-l-oxblood bg-gilt-bright/20 px-2 pb-3" : ""}`}>
+          <p className="text-lg leading-tight">
+            <span className="text-gilt">✦</span> {PILGRIMAGE.name}{" "}
+            <span className={`smallcaps ${STATUS_STYLE[pilgrimageStatus]}`}>· {pilgrimageStatus === "open" ? "open now" : pilgrimageStatus}</span>
+          </p>
+          <p className="text-sm text-ink-soft">
+            Opens with Station {roman(PILGRIMAGE.opensWith)}; closes and is marked when Station {roman(PILGRIMAGE.closesWith)} opens.
+          </p>
+          {pilgrimageStatus === "open" && (
+            <ul className="mt-2 text-base">
+              {standings.map((t) => (
+                <li key={t.teamId} className="flex justify-between gap-3">
+                  <span>
+                    {t.emoji} {t.name}
+                  </span>
+                  <span className="tabular-nums text-ink-soft">
+                    {pilgrimageCounts.get(t.teamId) ?? 0}/{pilgrimageBoxes}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </Section>
 
       <Section title={`Appeals${disputes.length ? ` (${disputes.length})` : ""}`} tone={disputes.length ? "urgent" : "quiet"}>
@@ -150,7 +186,7 @@ export default async function AbbotPage() {
             {disputes.map((d) => (
               <li key={`${d.teamId}-${d.stationId}-${d.questionId}`} className="border-b border-vellum-deep pb-3">
                 <p className="smallcaps text-sm text-ink-soft">
-                  {d.teamName} · Station {roman(d.stationId)}
+                  {d.teamName} · {roundName(d.stationId)}
                 </p>
                 <p>{d.prompt}</p>
                 <p className="text-xl text-oxblood">“{d.given}”</p>

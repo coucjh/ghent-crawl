@@ -1,9 +1,10 @@
 // The signature element: every Station is a wax seal. Pure SVG, usable from server and client components.
 
-export type SealState = "sealed" | "open" | "broken";
+import { roman } from "@/lib/config";
 
-const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
-export const roman = (n: number) => ROMAN[n] ?? String(n);
+export { roman };
+
+export type SealState = "sealed" | "open" | "broken";
 
 // An irregular, poured-wax outline.
 const EDGE = (() => {

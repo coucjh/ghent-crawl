@@ -2,15 +2,14 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import type { Standing, Track } from "@/lib/game";
-import { roman } from "./WaxSeal";
 
 const RUN_SECONDS = 1.6;
 const LANE_STAGGER = 0.2;
 
 /**
- * The Book as a race. Each Order has its own lane; the track is split into one segment per Station, as long as the
- * points that Station offers. On arrival every token runs from where it stood before the last Station to where it
- * stands now, so the Book replays the most recent round.
+ * The Book as a race. Each Order has its own lane; the track is split into one segment per round (each Station, and
+ * the Pilgrimage), as long as the points it offers. On arrival every token runs from where it stood before the last
+ * round to where it stands now, so the Book replays the most recent round.
  */
 export function Race({
   standings,
@@ -30,15 +29,15 @@ export function Race({
   return (
     <figure className="mb-6">
       <figcaption className="smallcaps mb-1 text-center text-sm text-ink-soft">
-        {track.lastStation ? `The run of Station ${roman(track.lastStation)}` : "At the starting line"}
+        {track.last ? `The run of ${track.last}` : "At the starting line"}
       </figcaption>
 
       <div className="relative mx-5">
         {/* Station gates: a faint rule where each Station's points end, the finish in oxblood. */}
         <div className="relative h-5" aria-hidden>
           {track.gates.map((g) => (
-            <span key={g.stationId} className="smallcaps absolute -translate-x-1/2 text-xs text-ink-soft" style={{ left: pct(g.at) }}>
-              {roman(g.stationId)}
+            <span key={g.id} className="smallcaps absolute -translate-x-1/2 text-xs text-ink-soft" style={{ left: pct(g.at) }}>
+              {g.label}
             </span>
           ))}
         </div>
@@ -46,7 +45,7 @@ export function Race({
           <span className="absolute inset-y-0 left-0 border-l border-gilt" />
           {track.gates.map((g, i) => (
             <span
-              key={g.stationId}
+              key={g.id}
               className={`absolute inset-y-0 ${i === track.gates.length - 1 ? "border-l-2 border-oxblood" : "border-l border-dashed border-gilt/70"}`}
               style={{ left: pct(g.at) }}
             />

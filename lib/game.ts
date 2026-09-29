@@ -1,12 +1,12 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { and, eq, lte } from "drizzle-orm";
-import { MAX_ORDERS, STATIONS } from "@/content/quiz";
-import { LAST_ORDERS_SECONDS, ORDER_EMOJI } from "./config";
+import { MAX_ORDERS, PILGRIMAGE, STATIONS } from "@/content/quiz";
+import { LAST_ORDERS_SECONDS, ORDER_EMOJI, roman } from "./config";
 import { getDb } from "./db";
 import { answers, game, players, stationStates, teams, teamStations } from "./db/schema";
 import { isCorrect, wordMatches } from "./marking";
-import type { PublicQuestion, Question, Station, StationStatus } from "./types";
+import type { ChoiceQuestion, PublicQuestion, Question, Station, StationStatus, TextQuestion } from "./types";
 
 // All game rules live here. Pages and server actions call these functions and never touch the tables directly.
 
@@ -14,24 +14,72 @@ export type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string
 const fail = (error: string) => ({ ok: false as const, error });
 
 const FINAL_STATION = STATIONS[STATIONS.length - 1];
-const pointsOf = (q: Question) => q.points ?? 1;
 
 export function stationById(id: number): Station | undefined {
   return STATIONS.find((s) => s.id === id);
 }
+
+/** The Pilgrimage is stored like a Station with this id: it has answers and a status, but no Word. */
+export const PILGRIMAGE_ID = 0;
+
+/** Anything with questions to answer: a Station, or the Pilgrimage. */
+type Round = { id: number; name: string; pub: string; label: string; questions: Question[] };
+
+function roundById(id: number): Round | undefined {
+  if (id === PILGRIMAGE_ID)
+    return { id, name: PILGRIMAGE.name, pub: "the road between taverns", label: "✦", questions: PILGRIMAGE.questions };
+  const s = stationById(id);
+  return s && { ...s, label: roman(s.id) };
+}
+
+/** How a round is named in passing: "Station II", "the Pilgrimage". */
+export const roundName = (id: number) => (id === PILGRIMAGE_ID ? "the Pilgrimage" : `Station ${roman(id)}`);
+
+/** Rounds in the order their points land: the Pilgrimage just before the Station whose opening closes it. */
+const ROUNDS_IN_ORDER: Round[] = STATIONS.flatMap((s) => [
+  ...(s.id === PILGRIMAGE.closesWith ? [roundById(PILGRIMAGE_ID)!] : []),
+  roundById(s.id)!,
+]);
+
+/** One answer box: what a player fills in and how it is marked. Answers are stored per part id. */
+type Part = { id: string; label?: string; markAs: TextQuestion | ChoiceQuestion; points: number };
+
+function partsOf(q: Question): Part[] {
+  const points = q.points ?? 1;
+  if (q.type !== "music") return [{ id: q.id, markAs: q, points }];
+  const text = (answers: string[]): TextQuestion => ({ id: q.id, type: "text", prompt: q.prompt, answers });
+  return [
+    { id: `${q.id}.artist`, label: "Artist", markAs: text(q.artist), points },
+    { id: `${q.id}.song`, label: "Song", markAs: text(q.song), points },
+  ];
+}
+
+function findPart(questions: Question[], partId: string) {
+  for (const question of questions) {
+    const part = partsOf(question).find((p) => p.id === partId);
+    if (part) return { question, part };
+  }
+  return null;
+}
+
+const maxPoints = (questions: Question[]) => questions.flatMap(partsOf).reduce((n, p) => n + p.points, 0);
+const acceptedOf = (p: Part) => (p.markAs.type === "choice" ? [p.markAs.answer] : p.markAs.answers);
 
 function publicQuestion(q: Question): PublicQuestion {
   return {
     id: q.id,
     type: q.type,
     prompt: q.prompt,
-    options: q.type === "choice" ? q.options : undefined,
-    points: pointsOf(q),
+    image: q.image,
+    clip: q.type === "music" ? q.clip : undefined,
+    parts: partsOf(q).map((p) => ({
+      id: p.id,
+      label: p.label,
+      kind: p.markAs.type,
+      options: p.markAs.type === "choice" ? p.markAs.options : undefined,
+      points: p.points,
+    })),
   };
-}
-
-function correctAnswerOf(q: Question): string {
-  return q.type === "choice" ? q.answer : q.answers[0];
 }
 
 // ─── Station lifecycle ──────────────────────────────────────────────────────
@@ -54,9 +102,9 @@ export async function getStationStates(): Promise<Map<number, StationState>> {
   const rows = await db.select().from(stationStates);
   const byId = new Map(rows.map((r) => [r.stationId, r]));
   return new Map(
-    STATIONS.map((s) => {
-      const row = byId.get(s.id);
-      return [s.id, { status: row?.status ?? "sealed", closesAt: row?.closesAt ?? null }];
+    ROUNDS_IN_ORDER.map((r) => {
+      const row = byId.get(r.id);
+      return [r.id, { status: row?.status ?? "sealed", closesAt: row?.closesAt ?? null }];
     }),
   );
 }
@@ -75,10 +123,16 @@ export async function openStation(stationId: number): Promise<Result> {
     .insert(stationStates)
     .values({ stationId, status: "open" })
     .onConflictDoUpdate({ target: stationStates.stationId, set: { status: "open", closesAt: null } });
+
+  // The Pilgrimage rides along with the pub Stations: no Abbot action needed.
+  if (stationId === PILGRIMAGE.opensWith)
+    await db.insert(stationStates).values({ stationId: PILGRIMAGE_ID, status: "open" }).onConflictDoNothing();
+  if (stationId === PILGRIMAGE.closesWith) await closeStation(PILGRIMAGE_ID);
   return { ok: true };
 }
 
 export async function callLastOrders(stationId: number, seconds = LAST_ORDERS_SECONDS): Promise<Result> {
+  if (stationId === PILGRIMAGE_ID) return fail("The Pilgrimage closes when its Station opens.");
   const states = await getStationStates();
   if (states.get(stationId)?.status !== "open") return fail("This Station is not open.");
   const db = await getDb();
@@ -89,9 +143,9 @@ export async function callLastOrders(stationId: number, seconds = LAST_ORDERS_SE
   return { ok: true };
 }
 
-/** Closes a Station for everyone and marks every answer. Idempotent: only the call that flips the status marks. */
+/** Closes a round for everyone and marks every answer. Idempotent: only the call that flips the status marks. */
 export async function closeStation(stationId: number): Promise<Result> {
-  const station = stationById(stationId);
+  const station = roundById(stationId);
   if (!station) return fail("No such Station.");
   const db = await getDb();
   const flipped = await db
@@ -103,10 +157,10 @@ export async function closeStation(stationId: number): Promise<Result> {
 
   const given = await db.select().from(answers).where(eq(answers.stationId, stationId));
   for (const a of given) {
-    const q = station.questions.find((q) => q.id === a.questionId);
+    const found = findPart(station.questions, a.questionId);
     await db
       .update(answers)
-      .set({ correct: q ? isCorrect(q, a.value) : false })
+      .set({ correct: found ? isCorrect(found.part.markAs, a.value) : false })
       .where(and(eq(answers.teamId, a.teamId), eq(answers.stationId, stationId), eq(answers.questionId, a.questionId)));
   }
   return { ok: true };
@@ -234,11 +288,12 @@ export async function grantEntry(teamId: string, stationId: number): Promise<Res
   return { ok: true };
 }
 
-async function assertCanWrite(teamId: string, stationId: number): Promise<Result<{ station: Station }>> {
-  const station = stationById(stationId);
+async function assertCanWrite(teamId: string, stationId: number): Promise<Result<{ station: Round }>> {
+  const station = roundById(stationId);
   if (!station) return fail("No such Station.");
   const states = await getStationStates();
   if (states.get(stationId)?.status !== "open") return fail("This Station is closed.");
+  if (stationId === PILGRIMAGE_ID) return { ok: true, station }; // no Word, no sealing
   const ts = await teamStation(teamId, stationId);
   if (!ts) return fail("Speak the Word first.");
   if (ts.sealedAt) return fail("Your answers are sealed.");
@@ -248,10 +303,11 @@ async function assertCanWrite(teamId: string, stationId: number): Promise<Result
 export async function saveAnswer(teamId: string, stationId: number, questionId: string, rawValue: string): Promise<Result> {
   const check = await assertCanWrite(teamId, stationId);
   if (!check.ok) return check;
-  const q = check.station.questions.find((q) => q.id === questionId);
-  if (!q) return fail("No such question.");
+  const found = findPart(check.station.questions, questionId);
+  if (!found) return fail("No such question.");
+  const { markAs } = found.part;
   const value = rawValue.slice(0, 200);
-  if (q.type === "choice" && value !== "" && !q.options.includes(value)) return fail("Not one of the options.");
+  if (markAs.type === "choice" && value !== "" && !markAs.options.includes(value)) return fail("Not one of the options.");
 
   const db = await getDb();
   await db
@@ -265,6 +321,7 @@ export async function saveAnswer(teamId: string, stationId: number, questionId: 
 }
 
 export async function sealAnswers(teamId: string, stationId: number): Promise<Result> {
+  if (stationId === PILGRIMAGE_ID) return fail("The Pilgrimage is never sealed; it closes when its Station opens.");
   const check = await assertCanWrite(teamId, stationId);
   if (!check.ok) return check;
   const db = await getDb();
@@ -307,6 +364,8 @@ export type AnswerView = { value: string; correct: boolean | null; appeal: "pend
 
 export type StationView = {
   id: number;
+  /** "IV", or "✦" for the Pilgrimage. */
+  label: string;
   name: string;
   pub: string;
   status: StationStatus;
@@ -323,10 +382,12 @@ export type StationView = {
 };
 
 export async function getStationView(teamId: string, stationId: number): Promise<StationView | null> {
-  const station = stationById(stationId);
+  const station = roundById(stationId);
   if (!station) return null;
   const state = (await getStationStates()).get(stationId)!;
-  const ts = await teamStation(teamId, stationId);
+  const pilgrimage = stationId === PILGRIMAGE_ID;
+  const ts = pilgrimage ? null : await teamStation(teamId, stationId);
+  const unlocked = pilgrimage ? state.status !== "sealed" : !!ts;
   const db = await getDb();
   const rows = await db
     .select()
@@ -334,27 +395,28 @@ export async function getStationView(teamId: string, stationId: number): Promise
     .where(and(eq(answers.teamId, teamId), eq(answers.stationId, stationId)));
 
   const closed = state.status === "closed";
-  const showQuestions = closed || (state.status === "open" && !!ts);
+  const showQuestions = closed || (state.status === "open" && unlocked);
   return {
     id: station.id,
+    label: station.label,
     name: station.name,
     pub: station.pub,
     status: state.status,
     closesAt: state.closesAt?.toISOString() ?? null,
-    unlocked: !!ts,
+    unlocked,
     sealed: !!ts?.sealedAt,
     questions: showQuestions ? station.questions.map(publicQuestion) : null,
     answers: Object.fromEntries(rows.map((r) => [r.questionId, { value: r.value, correct: r.correct, appeal: r.appeal }])),
-    corrections: closed ? Object.fromEntries(station.questions.map((q) => [q.id, correctAnswerOf(q)])) : null,
+    corrections: closed ? Object.fromEntries(station.questions.flatMap(partsOf).map((p) => [p.id, acceptedOf(p)[0]])) : null,
     score: closed ? scoreRows(station, rows) : null,
-    maxScore: station.questions.reduce((n, q) => n + pointsOf(q), 0),
+    maxScore: maxPoints(station.questions),
   };
 }
 
-function scoreRows(station: Station, rows: { questionId: string; correct: boolean | null }[]) {
+function scoreRows(station: { questions: Question[] }, rows: { questionId: string; correct: boolean | null }[]) {
   return rows.reduce((n, r) => {
-    const q = station.questions.find((q) => q.id === r.questionId);
-    return n + (r.correct && q ? pointsOf(q) : 0);
+    const found = findPart(station.questions, r.questionId);
+    return n + (r.correct && found ? found.part.points : 0);
   }, 0);
 }
 
@@ -370,14 +432,14 @@ export type Standing = {
   lane: number;
 };
 
-/** The id of the most recently closed Station (Stations close in order), or null. */
-function lastClosedStation(states: Map<number, StationState>): number | null {
-  return STATIONS.findLast((s) => states.get(s.id)!.status === "closed")?.id ?? null;
+/** The round whose points landed most recently (rounds close in track order), or null. */
+function lastClosedRound(states: Map<number, StationState>): number | null {
+  return ROUNDS_IN_ORDER.findLast((r) => states.get(r.id)!.status === "closed")?.id ?? null;
 }
 
 /** Every Order with its total, highest first. Ties keep founding order. */
 export async function getStandings(): Promise<Standing[]> {
-  const lastClosed = lastClosedStation(await getStationStates());
+  const lastClosed = lastClosedRound(await getStationStates());
   const db = await getDb();
   const [allTeams, allPlayers, correctRows] = await Promise.all([
     db.select().from(teams).orderBy(teams.createdAt),
@@ -386,7 +448,7 @@ export async function getStandings(): Promise<Standing[]> {
   ]);
   return allTeams
     .map((t, lane) => {
-      const byStation = STATIONS.map((s) => ({
+      const byStation = ROUNDS_IN_ORDER.map((s) => ({
         id: s.id,
         points: scoreRows(s, correctRows.filter((r) => r.teamId === t.id && r.stationId === s.id)),
       }));
@@ -404,16 +466,17 @@ export async function getStandings(): Promise<Standing[]> {
     .sort((a, b) => b.score - a.score);
 }
 
-/** The race track: one segment per Station, as long as the points it offers. */
-export type Track = { total: number; gates: { stationId: number; at: number }[]; lastStation: number | null };
+/** The race track: one segment per round, as long as the points it offers. `last` names the round just run. */
+export type Track = { total: number; gates: { id: number; label: string; at: number }[]; last: string | null };
 
 function track(states: Map<number, StationState>): Track {
   let at = 0;
-  const gates = STATIONS.map((s) => {
-    at += s.questions.reduce((n, q) => n + pointsOf(q), 0);
-    return { stationId: s.id, at };
+  const gates = ROUNDS_IN_ORDER.map((r) => {
+    at += maxPoints(r.questions);
+    return { id: r.id, label: r.label, at };
   });
-  return { total: at, gates, lastStation: lastClosedStation(states) };
+  const last = lastClosedRound(states);
+  return { total: at, gates, last: last === null ? null : roundName(last) };
 }
 
 export type Book =
@@ -460,20 +523,32 @@ export async function getDisputes(): Promise<Dispute[]> {
     .innerJoin(teams, eq(answers.teamId, teams.id))
     .where(eq(answers.appeal, "pending"));
   return rows.flatMap(({ a, teamName }) => {
-    const q = stationById(a.stationId)?.questions.find((q) => q.id === a.questionId);
-    if (!q) return [];
+    const found = findPart(roundById(a.stationId)?.questions ?? [], a.questionId);
+    if (!found) return [];
     return [
       {
         teamId: a.teamId,
         teamName,
         stationId: a.stationId,
         questionId: a.questionId,
-        prompt: q.prompt,
+        prompt: found.part.label ? `${found.question.prompt} (${found.part.label})` : found.question.prompt,
         given: a.value,
-        accepted: q.type === "choice" ? [q.answer] : q.answers,
+        accepted: acceptedOf(found.part),
       },
     ];
   });
+}
+
+/** How many answer boxes a round has (music questions count two). */
+export const answerBoxes = (stationId: number) => roundById(stationId)?.questions.flatMap(partsOf).length ?? 0;
+
+/** For the Abbots' dashboard: how many answer boxes each Order has filled in for a round. */
+export async function getAnswerCounts(stationId: number) {
+  const db = await getDb();
+  const rows = await db.select().from(answers).where(eq(answers.stationId, stationId));
+  const counts = new Map<string, number>();
+  for (const r of rows) if (r.value.trim()) counts.set(r.teamId, (counts.get(r.teamId) ?? 0) + 1);
+  return counts;
 }
 
 /** For the Abbots' dashboard: which Orders have unlocked / sealed the given Station. */

@@ -1,4 +1,4 @@
-import type { Question } from "./types";
+import type { ChoiceQuestion, TextQuestion } from "./types";
 
 const ARTICLES = /^(the|a|an|de|het|le|la|les|een) /;
 
@@ -35,7 +35,7 @@ function tolerance(accepted: string): number {
   return 0;
 }
 
-export function isCorrect(question: Question, answer: string): boolean {
+export function isCorrect(question: TextQuestion | ChoiceQuestion, answer: string): boolean {
   if (question.type === "choice") return answer === question.answer;
   const given = normalise(answer);
   if (!given) return false;

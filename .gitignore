@@ -46,3 +46,7 @@ next-env.d.ts
 
 # IDE
 /.idea
+
+# full-length songs for the music round (only the cut clips in public/media are committed)
+/media-src/*
+!/media-src/clips.json

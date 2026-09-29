@@ -3,7 +3,8 @@
 import { useRef, useState, useTransition } from "react";
 import { saveAnswerAction, sealAction } from "@/app/actions";
 import type { AnswerView } from "@/lib/game";
-import type { PublicQuestion } from "@/lib/types";
+import type { PublicPart, PublicQuestion } from "@/lib/types";
+import { ClipPlayer, Picture } from "./QuestionMedia";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -15,8 +16,25 @@ export function Prompt({ q }: { q: PublicQuestion }) {
       </span>
       <span className="sr-only">{q.prompt[0]}</span>
       {q.prompt.slice(1)}
-      {q.points > 1 && <span className="smallcaps ml-2 text-gilt">{q.points} points</span>}
+      {q.parts[0].points > 1 && (
+        <span className="smallcaps ml-2 text-gilt">
+          {q.parts[0].points} points{q.parts.length > 1 ? " each" : ""}
+        </span>
+      )}
     </p>
+  );
+}
+
+/** Prompt plus the question's picture or clip. `playable` is false once the Station has closed. */
+export function QuestionHead({ q, playable }: { q: PublicQuestion; playable: boolean }) {
+  return (
+    <>
+      <Prompt q={q} />
+      <div className="clear-both">
+        {q.image && <Picture src={q.image} />}
+        {q.clip && (playable ? <ClipPlayer src={q.clip} /> : <audio controls preload="none" src={q.clip} className="mt-3 w-full" />)}
+      </div>
+    </>
   );
 }
 
@@ -25,7 +43,17 @@ function StatusMark({ status }: { status: SaveStatus }) {
   return <span className={`smallcaps text-sm ${status === "error" ? "text-oxblood" : "text-ink-soft"}`}>{text}</span>;
 }
 
-function Answer({ stationId, q, serverValue, locked }: { stationId: number; q: PublicQuestion; serverValue: string; locked: boolean }) {
+function AnswerField({
+  stationId,
+  part,
+  serverValue,
+  locked,
+}: {
+  stationId: number;
+  part: PublicPart;
+  serverValue: string;
+  locked: boolean;
+}) {
   const [value, setValue] = useState(serverValue);
   const [focused, setFocused] = useState(false);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -40,7 +68,7 @@ function Answer({ stationId, q, serverValue, locked }: { stationId: number; q: P
 
   async function save(next: string) {
     setStatus("saving");
-    const r = await saveAnswerAction(stationId, q.id, next);
+    const r = await saveAnswerAction(stationId, part.id, next);
     setStatus(r.ok ? "saved" : "error");
   }
 
@@ -51,12 +79,12 @@ function Answer({ stationId, q, serverValue, locked }: { stationId: number; q: P
   }
 
   return (
-    <li className="clear-both border-b border-vellum-deep pb-5">
-      <Prompt q={q} />
-      <div className="clear-both pt-2">
-        {q.type === "choice" ? (
+    <div className="pt-2">
+      {part.label && <span className="smallcaps text-sm text-ink-soft">{part.label}</span>}
+      <div>
+        {part.kind === "choice" ? (
           <div className="grid grid-cols-2 gap-2">
-            {q.options!.map((opt) => (
+            {part.options!.map((opt) => (
               <button
                 key={opt}
                 type="button"
@@ -77,7 +105,7 @@ function Answer({ stationId, q, serverValue, locked }: { stationId: number; q: P
             value={value}
             disabled={locked}
             maxLength={200}
-            placeholder="Your answer"
+            placeholder={part.label ? `The ${part.label.toLowerCase()}` : "Your answer"}
             autoComplete="off"
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
@@ -88,7 +116,7 @@ function Answer({ stationId, q, serverValue, locked }: { stationId: number; q: P
           <StatusMark status={status} />
         </div>
       </div>
-    </li>
+    </div>
   );
 }
 
@@ -97,11 +125,14 @@ export function Manuscript({
   questions,
   answers,
   sealed,
+  sealable = true,
 }: {
   stationId: number;
   questions: PublicQuestion[];
   answers: Record<string, AnswerView>;
   sealed: boolean;
+  /** The Pilgrimage can't be sealed early; it closes when its Station opens. */
+  sealable?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -110,11 +141,16 @@ export function Manuscript({
     <div>
       <ol className="space-y-5">
         {questions.map((q) => (
-          <Answer key={q.id} stationId={stationId} q={q} serverValue={answers[q.id]?.value ?? ""} locked={sealed} />
+          <li key={q.id} className="clear-both border-b border-vellum-deep pb-5">
+            <QuestionHead q={q} playable />
+            {q.parts.map((part) => (
+              <AnswerField key={part.id} stationId={stationId} part={part} serverValue={answers[part.id]?.value ?? ""} locked={sealed} />
+            ))}
+          </li>
         ))}
       </ol>
 
-      <div className="mt-8 text-center">
+      <div className="mt-8 text-center" hidden={!sealable}>
         {sealed ? (
           <p className="italic text-ink-soft">Your answers are sealed. Await the Abbots&apos; judgement.</p>
         ) : confirming ? (

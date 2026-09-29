@@ -5,7 +5,7 @@ import { WaxSeal, type SealState } from "./WaxSeal";
 const sealState: Record<StationStatus, SealState> = { sealed: "sealed", open: "open", closed: "broken" };
 
 /** The row of seals across the top: the route of the night at a glance. */
-export function Pilgrimage({ stations, current }: { stations: { id: number; status: StationStatus }[]; current?: number }) {
+export function SealRow({ stations, current }: { stations: { id: number; status: StationStatus }[]; current?: number }) {
   return (
     <nav aria-label="Stations" className="flex justify-between gap-1">
       {stations.map((s) => {

@@ -25,6 +25,19 @@ Everything lives in [`content/quiz.ts`](content/quiz.ts): Station names, pubs, W
 - `type: "choice"` questions list `options` and the one correct `answer`.
 - `points` is optional (default 1).
 - Correct answers never reach the browser until a Station closes.
+- `image: "/media/p1.jpg"` on any question makes it a picture question. Put images in `public/media/` with neutral
+  names (the filename is visible to players).
+- `type: "music"` questions have a `clip` plus accepted `artist` and `song` answers; each box scores separately.
+  Clips play once per phone.
+- `PILGRIMAGE` is answered on the road: it opens with Station `opensWith` and closes (and is marked) when Station
+  `closesWith` opens.
+
+### Music clips
+
+Put the full songs in `media-src/` (git-ignored), list them in `media-src/clips.json`
+(`{ "id": "m1", "source": "song.mp3", "start": "0:45", "seconds": 8 }`, default 10 seconds), then run
+`npm run clips`. It cuts each clip into `public/media/<id>.mp3` and strips the embedded title/artist so phones can't
+show the answer. Needs ffmpeg (`brew install ffmpeg`).
 
 ## Deploy to Vercel
 

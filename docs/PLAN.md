@@ -21,13 +21,15 @@ Decisions made while designing the Ghent Abbey Crawl, and what comes next. Diffi
 | Abbot tools | Grant entry without the Word, rename/delete Orders, Reset the Abbey. |
 | Stack | Next.js on Vercel, Neon Postgres (EU), Drizzle. Deploys on every push to `master`; Preview deploys get their own database branch. |
 
-## Next (phase 2)
+## Phase 2
 
-### 🖼️ Picture round 🟢
+Built: 🖼️ picture round, 🚶 the Pilgrimage, 🎵 music questions. Still to build: 📸 photo challenges.
+
+### 🖼️ Picture round 🟢 — built
 - Any question may have an `image`. A Station whose questions all have images *is* a picture round.
 - Images live in `/public/media/`, named neutrally. Tap to enlarge.
 
-### 🚶 The Pilgrimage 🟡
+### 🚶 The Pilgrimage 🟡 — built
 - **One** Pilgrimage for the whole night, answered between (and during) pubs.
 - Opens automatically when **Station I** opens; closes automatically when **Station IV** opens. Both configurable in `content/quiz.ts`.
 - No Word needed. Its own tab/screen, available whatever pub round is running.
@@ -35,7 +37,7 @@ Decisions made while designing the Ghent Abbey Crawl, and what comes next. Diffi
 - **Points stay hidden until it closes**, then land all at once. On the race it is its own segment between III and IV
   ("The run of the Pilgrimage").
 
-### 🎵 Music questions 🟢
+### 🎵 Music questions 🟢 — built
 - A `music` question: one clip, two answer boxes — **Artist** and **Song**, 1 point each, fuzzy-marked.
 - **One play per phone** (counted when it starts; pausing is fine). Not tamper-proof, by choice.
 - ~10 songs. Clip length set per song, default **10 seconds**.
@@ -44,7 +46,7 @@ Decisions made while designing the Ghent Abbey Crawl, and what comes next. Diffi
 - Full songs go in `media-src/` (git-ignored); only the short clips are committed. Keep the repo private.
 - Test with free tracks (Kevin MacLeod / SoundHelix) until the real songs are bought.
 
-### 📸 Photo challenges 🟡
+### 📸 Photo challenges 🟡 — not built yet
 - A `photo` question: the answer is a photo. One per challenge per Order; any member can upload or replace it until
   the Pilgrimage closes (replacing sends it back for marking).
 - Resized on the phone (~1600px, ~300 KB) before upload. Stored in **Vercel Blob** (EU); a local-folder fallback in dev.

@@ -3,5 +3,8 @@
 /** The emblems an Order can choose. Each may be taken by only one Order. */
 export const ORDER_EMOJI = ["🍺", "🧇", "🍟", "🍫", "🦈", "🐉", "🦉", "🐗", "🦊", "🐺", "🐸", "🐐", "🦁", "🐙", "👑", "🔔"];
 
+const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+export const roman = (n: number) => ROMAN[n] ?? String(n);
+
 /** Length of the "Last Orders" countdown. */
 export const LAST_ORDERS_SECONDS = 120;

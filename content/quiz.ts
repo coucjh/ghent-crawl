@@ -1,5 +1,5 @@
 import "server-only";
-import type { Station } from "@/lib/types";
+import type { Pilgrimage, Station } from "@/lib/types";
 
 // PLACEHOLDER CONTENT — replace names, pubs, Words and questions before the night.
 // Question ids must be unique within a Station; changing them after answers exist orphans those answers.
@@ -41,18 +41,14 @@ export const STATIONS: Station[] = [
   },
   {
     id: 3,
-    name: "Of the Wider World",
+    name: "The Picture Round",
     pub: "The Third Tavern (to be chosen)",
     word: "sanctus",
     questions: [
-      { id: "q1", type: "text", prompt: "What is the capital of Belgium?", answers: ["Brussels", "Bruxelles", "Brussel"] },
-      { id: "q2", type: "text", prompt: "Which Belgian detective did Agatha Christie create?", answers: ["Hercule Poirot", "Poirot"] },
-      { id: "q3", type: "text", prompt: "What is the name of Tintin's dog (in English)?", answers: ["Snowy", "Milou"] },
-      { id: "q4", type: "text", prompt: "How many sides does a hexagon have?", answers: ["6", "Six"] },
-      { id: "q5", type: "choice", prompt: "Which planet is known as the Red Planet?", options: ["Mars", "Venus", "Jupiter", "Mercury"], answer: "Mars" },
-      { id: "q6", type: "choice", prompt: "Which is the largest ocean?", options: ["Pacific", "Atlantic", "Indian", "Arctic"], answer: "Pacific" },
-      { id: "q7", type: "text", prompt: "What is the chemical symbol for gold?", answers: ["Au"] },
-      { id: "q8", type: "text", prompt: "In what year did the Berlin Wall fall?", answers: ["1989"] },
+      { id: "q1", type: "text", prompt: "Which castle is this?", image: "/media/p1.jpg", answers: ["Gravensteen", "'s-Gravensteen", "Castle of the Counts"] },
+      { id: "q2", type: "choice", prompt: "Which city's skyline is this?", image: "/media/p2.jpg", options: ["Ghent", "Bruges", "Antwerp", "Leuven"], answer: "Ghent" },
+      { id: "q3", type: "text", prompt: "Name this small but famous statue.", image: "/media/p3.jpg", answers: ["Manneken Pis"] },
+      { id: "q4", type: "text", prompt: "Name this building.", image: "/media/p4.jpg", answers: ["Atomium", "The Atomium"] },
     ],
   },
   {
@@ -88,3 +84,19 @@ export const STATIONS: Station[] = [
     ],
   },
 ];
+
+// PLACEHOLDER — the Pilgrimage, answered on the road. Music clips are cut by `npm run clips` (see media-src/clips.json);
+// the test clips are free Kevin MacLeod tracks (docs/test-media-credits.md).
+export const PILGRIMAGE: Pilgrimage = {
+  name: "The Pilgrimage",
+  opensWith: 1,
+  closesWith: 4,
+  questions: [
+    { id: "q1", type: "music", prompt: "Name this chant", clip: "/media/m1.mp3", artist: ["Kevin MacLeod"], song: ["Sneaky Snitch"] },
+    { id: "q2", type: "music", prompt: "Name this chant", clip: "/media/m2.mp3", artist: ["Kevin MacLeod"], song: ["Monkeys Spinning Monkeys"] },
+    { id: "q3", type: "music", prompt: "Name this chant", clip: "/media/m3.mp3", artist: ["Kevin MacLeod"], song: ["Fluffing a Duck"] },
+    { id: "q4", type: "music", prompt: "Name this chant", clip: "/media/m4.mp3", artist: ["Kevin MacLeod"], song: ["Carefree"] },
+    { id: "q5", type: "music", prompt: "Name this chant", clip: "/media/m5.mp3", artist: ["Kevin MacLeod"], song: ["Local Forecast", "Local Forecast Elevator"] },
+    { id: "q6", type: "text", prompt: "Ghent's cathedral is named after which saint?", answers: ["Bavo", "Saint Bavo", "St Bavo", "Sint-Baafs"] },
+  ],
+};

@@ -1,4 +1,4 @@
-import type { Station } from "@/lib/types";
+import type { Pilgrimage, Station } from "@/lib/types";
 
 // Stand-in for content/quiz.ts in tests, so the real questions can change freely.
 
@@ -30,7 +30,23 @@ export const STATIONS: Station[] = [
     ],
   },
   filler(2, "lupulus"),
-  filler(3, "sanctus"),
+  {
+    ...filler(3, "sanctus"),
+    questions: [
+      { id: "q1", type: "text", prompt: "What is this?", answers: ["Gravensteen"], image: "/media/p1.jpg" },
+      { id: "q2", type: "music", prompt: "Name this tune", clip: "/media/m1.mp3", artist: ["Kevin MacLeod"], song: ["Sneaky Snitch"] },
+    ],
+  },
   filler(4, "gratia"),
   filler(5, "amen"),
 ];
+
+export const PILGRIMAGE: Pilgrimage = {
+  name: "The Pilgrimage",
+  opensWith: 1,
+  closesWith: 4,
+  questions: [
+    { id: "q1", type: "text", prompt: "Cathedral saint?", answers: ["Bavo", "Saint Bavo"] },
+    { id: "q2", type: "music", prompt: "On the road", clip: "/media/m1.mp3", artist: ["Kevin MacLeod"], song: ["Sneaky Snitch"] },
+  ],
+};
