@@ -15,6 +15,13 @@
       "when": 1790608646342,
       "tag": "0001_drop_team_code",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790675842528,
+      "tag": "0002_order_emoji",
+      "breakpoints": true
     }
   ]
 }

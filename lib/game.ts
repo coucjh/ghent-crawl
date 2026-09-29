@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { and, eq, lte } from "drizzle-orm";
 import { MAX_ORDERS, STATIONS } from "@/content/quiz";
+import { LAST_ORDERS_SECONDS, ORDER_EMOJI } from "./config";
 import { getDb } from "./db";
 import { answers, game, players, stationStates, teams, teamStations } from "./db/schema";
 import { isCorrect, wordMatches } from "./marking";
@@ -77,7 +78,7 @@ export async function openStation(stationId: number): Promise<Result> {
   return { ok: true };
 }
 
-export async function callLastOrders(stationId: number, seconds = 120): Promise<Result> {
+export async function callLastOrders(stationId: number, seconds = LAST_ORDERS_SECONDS): Promise<Result> {
   const states = await getStationStates();
   if (states.get(stationId)?.status !== "open") return fail("This Station is not open.");
   const db = await getDb();
@@ -123,7 +124,11 @@ function cleanName(s: string, max: number) {
   return s.replace(/\s+/g, " ").trim().slice(0, max);
 }
 
-export async function foundOrder(rawName: string, rawFirstName: string): Promise<Result<{ playerId: string }>> {
+export async function foundOrder(
+  rawName: string,
+  rawFirstName: string,
+  emoji: string,
+): Promise<Result<{ playerId: string }>> {
   const name = cleanName(rawName, 40);
   const firstName = cleanName(rawFirstName, 24);
   if (!name) return fail("Your Order needs a name.");
@@ -134,10 +139,12 @@ export async function foundOrder(rawName: string, rawFirstName: string): Promise
   const existing = await db.select().from(teams);
   if (existing.length >= MAX_ORDERS) return fail(`The Abbey holds only ${MAX_ORDERS} Orders.`);
   if (existing.some((t) => t.name.toLowerCase() === name.toLowerCase())) return fail("That Order already exists.");
+  if (!ORDER_EMOJI.includes(emoji)) return fail("Choose an emblem for your Order.");
+  if (existing.some((t) => t.emoji === emoji)) return fail("Another Order already bears that emblem.");
 
   const teamId = randomUUID();
   const playerId = randomUUID();
-  await db.insert(teams).values({ id: teamId, name });
+  await db.insert(teams).values({ id: teamId, name, emoji });
   await db.insert(players).values({ id: playerId, teamId, firstName });
   return { ok: true, playerId };
 }
@@ -145,7 +152,7 @@ export async function foundOrder(rawName: string, rawFirstName: string): Promise
 /** The Orders a player can choose from when joining. */
 export async function listOrders() {
   const db = await getDb();
-  return db.select({ id: teams.id, name: teams.name }).from(teams).orderBy(teams.createdAt);
+  return db.select({ id: teams.id, name: teams.name, emoji: teams.emoji }).from(teams).orderBy(teams.createdAt);
 }
 
 /** Joins an existing Order. Re-joining with an existing first name restores that player — even after joining locks. */
@@ -351,10 +358,26 @@ function scoreRows(station: Station, rows: { questionId: string; correct: boolea
   }, 0);
 }
 
-export type Standing = { teamId: string; name: string; score: number; members: string[] };
+export type Standing = {
+  teamId: string;
+  name: string;
+  emoji: string;
+  members: string[];
+  score: number;
+  /** The score before the most recently closed Station — the race animates from here. */
+  previousScore: number;
+  /** Founding order; each Order keeps its own lane in the race. */
+  lane: number;
+};
+
+/** The id of the most recently closed Station (Stations close in order), or null. */
+function lastClosedStation(states: Map<number, StationState>): number | null {
+  return STATIONS.findLast((s) => states.get(s.id)!.status === "closed")?.id ?? null;
+}
 
 /** Every Order with its total, highest first. Ties keep founding order. */
 export async function getStandings(): Promise<Standing[]> {
+  const lastClosed = lastClosedStation(await getStationStates());
   const db = await getDb();
   const [allTeams, allPlayers, correctRows] = await Promise.all([
     db.select().from(teams).orderBy(teams.createdAt),
@@ -362,28 +385,50 @@ export async function getStandings(): Promise<Standing[]> {
     db.select().from(answers).where(eq(answers.correct, true)),
   ]);
   return allTeams
-    .map((t) => ({
-      teamId: t.id,
-      name: t.name,
-      members: allPlayers.filter((p) => p.teamId === t.id).map((p) => p.firstName),
-      score: STATIONS.reduce(
-        (n, s) => n + scoreRows(s, correctRows.filter((r) => r.teamId === t.id && r.stationId === s.id)),
-        0,
-      ),
-    }))
+    .map((t, lane) => {
+      const byStation = STATIONS.map((s) => ({
+        id: s.id,
+        points: scoreRows(s, correctRows.filter((r) => r.teamId === t.id && r.stationId === s.id)),
+      }));
+      const score = byStation.reduce((n, s) => n + s.points, 0);
+      return {
+        teamId: t.id,
+        name: t.name,
+        emoji: t.emoji,
+        members: allPlayers.filter((p) => p.teamId === t.id).map((p) => p.firstName),
+        score,
+        previousScore: score - (byStation.find((s) => s.id === lastClosed)?.points ?? 0),
+        lane,
+      };
+    })
     .sort((a, b) => b.score - a.score);
 }
 
-export type Book = { state: "open"; standings: Standing[] } | { state: "sealed" } | { state: "revealed"; standings: Standing[] };
+/** The race track: one segment per Station, as long as the points it offers. */
+export type Track = { total: number; gates: { stationId: number; at: number }[]; lastStation: number | null };
+
+function track(states: Map<number, StationState>): Track {
+  let at = 0;
+  const gates = STATIONS.map((s) => {
+    at += s.questions.reduce((n, q) => n + pointsOf(q), 0);
+    return { stationId: s.id, at };
+  });
+  return { total: at, gates, lastStation: lastClosedStation(states) };
+}
+
+export type Book =
+  | { state: "open"; standings: Standing[]; track: Track }
+  | { state: "sealed" }
+  | { state: "revealed"; standings: Standing[]; track: Track };
 
 /** The leaderboard as players see it: hidden from the moment the final Station opens until the Abbots reveal it. */
 export async function getBook(): Promise<Book> {
   const states = await getStationStates();
   const db = await getDb();
   const [g] = await db.select().from(game).where(eq(game.id, 1));
-  if (g?.revealedAt) return { state: "revealed", standings: await getStandings() };
+  if (g?.revealedAt) return { state: "revealed", standings: await getStandings(), track: track(states) };
   if (states.get(FINAL_STATION.id)!.status !== "sealed") return { state: "sealed" };
-  return { state: "open", standings: await getStandings() };
+  return { state: "open", standings: await getStandings(), track: track(states) };
 }
 
 export async function reveal(): Promise<Result> {

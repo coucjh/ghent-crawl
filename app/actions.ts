@@ -16,7 +16,7 @@ async function requireTeamId() {
 }
 
 export async function foundOrderAction(_: FormState, form: FormData): Promise<FormState> {
-  const r = await game.foundOrder(str(form, "name"), str(form, "firstName"));
+  const r = await game.foundOrder(str(form, "name"), str(form, "firstName"), str(form, "emoji"));
   if (!r.ok) return { error: r.error };
   await setPlayerSession(r.playerId);
   redirect("/");

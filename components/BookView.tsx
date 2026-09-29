@@ -4,6 +4,7 @@ import confetti from "canvas-confetti";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect } from "react";
 import type { Book, Standing } from "@/lib/game";
+import { Race } from "./Race";
 import { roman, WaxSeal } from "./WaxSeal";
 
 const REVEAL_STEP = 1.4; // seconds between each Order being read out
@@ -13,7 +14,9 @@ function Row({ s, rank, highlight }: { s: Standing; rank: number; highlight?: st
     <div className={`flex items-center gap-4 border-b border-vellum-deep py-3 ${s.teamId === highlight ? "bg-gilt/15" : ""}`}>
       <span className={`w-12 text-center text-2xl font-semibold ${rank === 1 ? "text-gilt" : "text-oxblood"}`}>{roman(rank)}</span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-xl leading-tight">{s.name}</p>
+        <p className="truncate text-xl leading-tight">
+          {s.emoji} {s.name}
+        </p>
         <p className="truncate text-sm text-ink-soft">{s.members.join(" · ")}</p>
       </div>
       <span className="text-3xl tabular-nums">{s.score}</span>
@@ -87,9 +90,21 @@ export function BookView({ book, highlight }: { book: Book; highlight?: string }
       </div>
     );
   if (book.standings.length === 0) return <p className="text-center italic">No Orders have been founded yet.</p>;
-  return book.state === "revealed" ? (
-    <Reveal standings={book.standings} highlight={highlight} />
-  ) : (
-    <Standings standings={book.standings} highlight={highlight} />
+  if (book.state === "open")
+    return (
+      <>
+        <Race standings={book.standings} track={book.track} highlight={highlight} />
+        <Standings standings={book.standings} highlight={highlight} />
+      </>
+    );
+  // The final run starts only once the reveal has read out the winner, so the race can't spoil it.
+  const revealEnds = (book.standings.length - 1) * REVEAL_STEP + 1.6;
+  return (
+    <>
+      <Reveal standings={book.standings} highlight={highlight} />
+      <motion.div className="mt-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: revealEnds, duration: 0.6 }}>
+        <Race standings={book.standings} track={book.track} highlight={highlight} startDelay={revealEnds} />
+      </motion.div>
+    </>
   );
 }

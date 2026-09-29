@@ -3,6 +3,7 @@ import { boolean, integer, pgTable, primaryKey, text, timestamp } from "drizzle-
 export const teams = pgTable("teams", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
+  emoji: text("emoji").notNull().default("🍺"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

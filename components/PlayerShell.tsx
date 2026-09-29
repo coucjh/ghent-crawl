@@ -11,7 +11,7 @@ export function Masthead() {
   return (
     <header className="mb-6 text-center">
       <p className="smallcaps text-sm text-ink-soft">Gent · Anno MMXXVI</p>
-      <h1 className="font-display text-5xl leading-none text-oxblood">Monk Marko's Crawl</h1>
+      <h1 className="font-display text-5xl leading-none text-oxblood">Monk Marko&apos;s Crawl</h1>
       <div className="rule mt-3 text-sm" aria-hidden>
         ✠
       </div>
@@ -37,7 +37,10 @@ export async function PlayerShell({ player, stationId, dev }: { player: Player; 
       <Masthead />
 
       <section className="mb-6 text-center">
-        <p className="font-display text-3xl">{player.team.name}</p>
+        <p className="font-display text-3xl">
+          <span className="mr-2 font-serif">{player.team.emoji}</span>
+          {player.team.name}
+        </p>
         <p className="text-ink-soft">
           {player.members.join(" · ")}
         </p>

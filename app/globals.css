@@ -170,3 +170,24 @@ body {
   outline: 1px solid var(--color-oxblood);
   outline-offset: 2px;
 }
+
+/* Bubbles rising through the Last Orders pint. */
+@keyframes beer-bubble {
+  from {
+    transform: translateY(0);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(-40px);
+    opacity: 0;
+  }
+}
+.beer-bubble {
+  animation: beer-bubble 2.1s ease-in infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .beer-bubble {
+    animation: none;
+    opacity: 0;
+  }
+}

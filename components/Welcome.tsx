@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { foundOrderAction, joinOrderAction, type FormState } from "@/app/actions";
+import { ORDER_EMOJI } from "@/lib/config";
 
 function ErrorLine({ state }: { state: FormState }) {
   return state.error ? (
@@ -11,7 +12,28 @@ function ErrorLine({ state }: { state: FormState }) {
   ) : null;
 }
 
-function FoundForm() {
+function EmblemPicker({ taken }: { taken: Set<string> }) {
+  return (
+    <fieldset>
+      <legend className="smallcaps text-ink-soft">Your Order&apos;s emblem</legend>
+      <div className="mt-2 grid grid-cols-8 gap-1">
+        {ORDER_EMOJI.map((e) => (
+          <label key={e} className={taken.has(e) ? "opacity-25" : "cursor-pointer"}>
+            <input type="radio" name="emoji" value={e} required disabled={taken.has(e)} className="peer sr-only" />
+            <span
+              aria-label={taken.has(e) ? `${e} (taken)` : e}
+              className="grid aspect-square place-items-center border border-transparent text-2xl transition-colors peer-checked:border-oxblood peer-checked:bg-oxblood/15 peer-focus-visible:outline-2 peer-focus-visible:outline-oxblood"
+            >
+              {e}
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function FoundForm({ taken }: { taken: Set<string> }) {
   const [state, action, pending] = useActionState(foundOrderAction, {});
   return (
     <form action={action} className="space-y-5">
@@ -19,6 +41,7 @@ function FoundForm() {
         <span className="smallcaps text-ink-soft">Name of your Order</span>
         <input name="name" required maxLength={40} className="field text-xl" placeholder="The Order of St. Stella" autoComplete="off" />
       </label>
+      <EmblemPicker taken={taken} />
       <label className="block">
         <span className="smallcaps text-ink-soft">Your first name</span>
         <input name="firstName" required maxLength={24} className="field text-xl" autoComplete="given-name" />
@@ -31,7 +54,7 @@ function FoundForm() {
   );
 }
 
-type Order = { id: string; name: string };
+type Order = { id: string; name: string; emoji: string };
 
 function JoinForm({ orders }: { orders: Order[] }) {
   const [state, action, pending] = useActionState(joinOrderAction, {});
@@ -46,7 +69,7 @@ function JoinForm({ orders }: { orders: Order[] }) {
           </option>
           {orders.map((o) => (
             <option key={o.id} value={o.id}>
-              {o.name}
+              {o.emoji} {o.name}
             </option>
           ))}
         </select>
@@ -91,7 +114,7 @@ export function Welcome({ locked, orders }: { locked: boolean; orders: Order[] }
           </button>
         ))}
       </div>
-      {mode === "join" ? <JoinForm orders={orders} /> : <FoundForm />}
+      {mode === "join" ? <JoinForm orders={orders} /> : <FoundForm taken={new Set(orders.map((o) => o.emoji))} />}
     </div>
   );
 }

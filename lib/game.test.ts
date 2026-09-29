@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ORDER_EMOJI } from "./config";
 import * as g from "./game";
 
-// Runs against in-memory PGlite (DATABASE_URL=pglite://memory, see vitest.config.mts) using the real quiz content.
+// Runs against in-memory PGlite (DATABASE_URL=pglite://memory, see vitest.config.mts) with a fixture quiz.
+vi.mock("@/content/quiz", () => import("../test/fixture-quiz"));
 
+let emblem = 0;
 async function order(name: string, firstName = "Tom") {
-  const r = await g.foundOrder(name, firstName);
+  const r = await g.foundOrder(name, firstName, ORDER_EMOJI[emblem++ % ORDER_EMOJI.length]);
   if (!r.ok) throw new Error(r.error);
   const p = await g.getPlayer(r.playerId);
   return p!.team;
@@ -20,7 +23,7 @@ describe("joining", () => {
     const team = await order("Order of St. Stella", "Tom");
     const anna = await g.joinOrder(team.id, "Anna");
     expect(anna.ok).toBe(true);
-    expect(await g.listOrders()).toEqual([{ id: team.id, name: "Order of St. Stella" }]);
+    expect(await g.listOrders()).toMatchObject([{ id: team.id, name: "Order of St. Stella" }]);
     expect((await g.joinOrder("no-such-order", "Bob")).ok).toBe(false);
     const tomAgain = await g.joinOrder(team.id, " tom ");
     const p = await g.getPlayer((tomAgain as { playerId: string }).playerId);
@@ -30,17 +33,24 @@ describe("joining", () => {
 
   it("caps the number of Orders and rejects duplicates", async () => {
     await order("A");
-    expect((await g.foundOrder("a", "X")).ok).toBe(false);
+    expect((await g.foundOrder("a", "X", "🦉")).ok).toBe(false);
     await order("B");
     await order("C");
     await order("D");
-    expect(await g.foundOrder("E", "X")).toMatchObject({ ok: false });
+    expect(await g.foundOrder("E", "X", "🦉")).toMatchObject({ ok: false });
+  });
+
+  it("gives each Order its own emblem from the set", async () => {
+    expect((await g.foundOrder("A", "Tom", "🦈")).ok).toBe(true);
+    expect(await g.foundOrder("B", "Anna", "🦈")).toMatchObject({ ok: false, error: "Another Order already bears that emblem." });
+    expect((await g.foundOrder("B", "Anna", "💩")).ok).toBe(false);
+    expect(await g.listOrders()).toMatchObject([{ name: "A", emoji: "🦈" }]);
   });
 
   it("locks new joiners once Station I opens, but still lets members rejoin", async () => {
     const team = await order("A", "Tom");
     await g.openStation(1);
-    expect((await g.foundOrder("B", "X")).ok).toBe(false);
+    expect((await g.foundOrder("B", "X", "🦉")).ok).toBe(false);
     expect((await g.joinOrder(team.id, "Newbie")).ok).toBe(false);
     expect((await g.joinOrder(team.id, "Tom")).ok).toBe(true);
   });
@@ -127,6 +137,42 @@ describe("a Station", () => {
     expect((await g.saveAnswer(team.id, 1, "q2", "Scheldt")).ok).toBe(false);
     expect((await g.getStationStates()).get(1)!.status).toBe("closed");
     expect((await g.getStationView(team.id, 1))!.score).toBe(1);
+  });
+});
+
+describe("the race", () => {
+  it("lays one track segment per Station and remembers where each Order stood before the last one", async () => {
+    const a = await order("A");
+    const b = await order("B");
+    await g.openStation(1);
+    await g.speakWord(a.id, 1, "pax");
+    await g.saveAnswer(a.id, 1, "q1", "Gravensteen");
+    await g.saveAnswer(a.id, 1, "q8", "dragon");
+    await g.closeStation(1);
+
+    let book = await g.getBook();
+    if (book.state !== "open") throw new Error(book.state);
+    expect(book.track).toEqual({
+      total: 13,
+      gates: [1, 2, 3, 4, 5].map((stationId, i) => ({ stationId, at: 9 + i })),
+      lastStation: 1,
+    });
+    expect(book.standings).toMatchObject([
+      { name: "A", score: 3, previousScore: 0, lane: 0 },
+      { name: "B", score: 0, previousScore: 0, lane: 1 },
+    ]);
+
+    await g.openStation(2);
+    await g.speakWord(b.id, 2, "lupulus");
+    await g.saveAnswer(b.id, 2, "q1", "filler");
+    await g.closeStation(2);
+    book = await g.getBook();
+    if (book.state !== "open") throw new Error(book.state);
+    expect(book.track.lastStation).toBe(2);
+    expect(book.standings).toMatchObject([
+      { name: "A", score: 3, previousScore: 3 },
+      { name: "B", score: 1, previousScore: 0 },
+    ]);
   });
 });
 

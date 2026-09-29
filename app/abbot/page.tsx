@@ -120,7 +120,9 @@ export default async function AbbotPage() {
                         const p = progress.get(t.teamId);
                         return (
                           <li key={t.teamId} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
-                            <span className="min-w-40 flex-1 leading-tight">{t.name}</span>
+                            <span className="min-w-40 flex-1 leading-tight">
+                              {t.emoji} {t.name}
+                            </span>
                             {p ? (
                               <span className="smallcaps text-verdigris">{p.sealed ? "sealed" : "answering"}</span>
                             ) : (
@@ -172,7 +174,7 @@ export default async function AbbotPage() {
             <li key={t.teamId} className="border-b border-vellum-deep pb-3">
               <div className="flex items-baseline justify-between">
                 <p className="text-lg">
-                  <span className="font-semibold text-oxblood">{roman(i + 1)}</span> {t.name}
+                  <span className="font-semibold text-oxblood">{roman(i + 1)}</span> {t.emoji} {t.name}
                 </p>
                 <span className="text-2xl tabular-nums">{t.score}</span>
               </div>
