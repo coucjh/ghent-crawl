@@ -38,7 +38,8 @@ Decisions made while designing the Ghent Abbey Crawl, and what comes next. Diffi
 
 ### 🎵 Music questions 🟢 — built
 - A `music` question: one clip, two answer boxes — **Artist** and **Song**, 1 point each, fuzzy-marked.
-- **One play per phone** (counted when it starts; pausing is fine). Not tamper-proof, by choice.
+- **One play per phone** (counted when it starts; pausing is fine), remembered per player on that phone — so Reset
+  the Abbey gives everyone fresh plays, while rejoining under the same name doesn't. Not tamper-proof, by choice.
 - ~10 songs. Clip length set per song, default **10 seconds**.
 - `npm run clips`: reads a list (source file, start time, length) and uses ffmpeg to cut each clip, **strip the
   embedded title/artist tags**, and write `m1.mp3`, `m2.mp3`… to `/public/media/`.

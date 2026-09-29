@@ -7,7 +7,7 @@ import { WaxSeal } from "./WaxSeal";
 import { WordForm } from "./WordForm";
 
 /** Everything a player sees for one Station, whatever state it is in. */
-export function StationPanel({ view, wordHint }: { view: StationView; wordHint?: string }) {
+export function StationPanel({ view, listener, wordHint }: { view: StationView; listener: string; wordHint?: string }) {
   const pilgrimage = view.pilgrimage;
   return (
     <section>
@@ -49,7 +49,7 @@ export function StationPanel({ view, wordHint }: { view: StationView; wordHint?:
         )}
 
         {view.status === "open" && view.unlocked && view.questions && (
-          <Manuscript stationId={view.id} questions={view.questions} answers={view.answers} sealed={view.sealed} sealable={!pilgrimage} />
+          <Manuscript stationId={view.id} questions={view.questions} answers={view.answers} sealed={view.sealed} sealable={!pilgrimage} listener={listener} />
         )}
 
         {view.status === "closed" && view.questions && view.corrections && (

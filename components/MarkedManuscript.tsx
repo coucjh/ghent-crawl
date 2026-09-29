@@ -65,7 +65,7 @@ export function MarkedManuscript({
     <ol className="space-y-5">
       {questions.map((q) => (
         <li key={q.id} className="clear-both border-b border-vellum-deep pb-4">
-          <QuestionHead q={q} playable={false} />
+          <QuestionHead q={q} />
           {q.parts.map((part) => {
             const a = answers[part.id];
             if (part.kind === "photo") return <PhotoVerdict key={part.id} a={a} points={part.points} />;

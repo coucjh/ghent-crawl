@@ -26,14 +26,14 @@ export function Prompt({ q }: { q: PublicQuestion }) {
   );
 }
 
-/** Prompt plus the question's picture or clip. `playable` is false once the Station has closed. */
-export function QuestionHead({ q, playable }: { q: PublicQuestion; playable: boolean }) {
+/** Prompt plus the question's picture or clip. With a `listener` (the player) the clip plays once; without, freely. */
+export function QuestionHead({ q, listener }: { q: PublicQuestion; listener?: string }) {
   return (
     <>
       <Prompt q={q} />
       <div className="clear-both">
         {q.image && <Picture src={q.image} alt={q.type === "photo" ? "The painting to re-enact" : undefined} />}
-        {q.clip && (playable ? <ClipPlayer src={q.clip} /> : <audio controls preload="none" src={q.clip} className="mt-3 w-full" />)}
+        {q.clip && (listener ? <ClipPlayer src={q.clip} listener={listener} /> : <audio controls preload="none" src={q.clip} className="mt-3 w-full" />)}
       </div>
     </>
   );
@@ -127,6 +127,7 @@ export function Manuscript({
   answers,
   sealed,
   sealable = true,
+  listener,
 }: {
   stationId: number;
   questions: PublicQuestion[];
@@ -134,6 +135,8 @@ export function Manuscript({
   sealed: boolean;
   /** The Pilgrimage can't be sealed early; it closes when its Station opens. */
   sealable?: boolean;
+  /** The player's id: music clips play once per player per phone. */
+  listener: string;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -143,7 +146,7 @@ export function Manuscript({
       <ol className="space-y-5">
         {questions.map((q) => (
           <li key={q.id} className="clear-both border-b border-vellum-deep pb-5">
-            <QuestionHead q={q} playable />
+            <QuestionHead q={q} listener={listener} />
             {q.parts.map((part) =>
               part.kind === "photo" ? (
                 <PhotoField key={part.id} stationId={stationId} partId={part.id} serverKey={answers[part.id]?.value ?? ""} />

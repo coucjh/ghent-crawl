@@ -37,21 +37,22 @@ export function Picture({ src, plain = false, alt = "The picture for this questi
   );
 }
 
-// "One play per phone" lives in this phone's localStorage. Not tamper-proof, by design.
-const playedKey = (src: string) => `abbey-played:${src}`;
+// "One play per phone" lives in this phone's localStorage, keyed by player as well as clip: Reset the Abbey wipes
+// the players, so everyone who rejoins hears each clip afresh. Not tamper-proof, by design.
+const playedKey = (listener: string, src: string) => `abbey-played:${listener}:${src}`;
 const PLAYED_EVENT = "abbey-played";
 
-function hasPlayed(src: string) {
+function hasPlayed(key: string) {
   try {
-    return localStorage.getItem(playedKey(src)) === "1";
+    return localStorage.getItem(key) === "1";
   } catch {
     return false;
   }
 }
 
-function markPlayed(src: string) {
+function markPlayed(key: string) {
   try {
-    localStorage.setItem(playedKey(src), "1");
+    localStorage.setItem(key, "1");
   } catch {
     // Private mode: the limit simply won't stick.
   }
@@ -67,10 +68,11 @@ function subscribe(onChange: () => void) {
   };
 }
 
-/** A music clip that may be heard once on this phone. Pausing and resuming within that one play is fine. */
-export function ClipPlayer({ src }: { src: string }) {
+/** A music clip that `listener` may hear once on this phone. Pausing and resuming within that one play is fine. */
+export function ClipPlayer({ src, listener }: { src: string; listener: string }) {
   const audio = useRef<HTMLAudioElement>(null);
-  const used = useSyncExternalStore(subscribe, () => hasPlayed(src), () => false);
+  const key = playedKey(listener, src);
+  const used = useSyncExternalStore(subscribe, () => hasPlayed(key), () => false);
   const [started, setStarted] = useState(false); // started on this visit, so it may be resumed
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -82,7 +84,7 @@ export function ClipPlayer({ src }: { src: string }) {
     await el.play();
     if (!started) {
       setStarted(true);
-      markPlayed(src);
+      markPlayed(key);
     }
   }
 

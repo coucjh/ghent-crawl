@@ -91,7 +91,7 @@ export async function PlayerShell({ player, stationId, dev }: { player: Player; 
 
       {pilgrimages.map((p) => p && <PilgrimageLink key={p.n} n={p.n} view={p.view} />)}
 
-      {view && <StationPanel view={view} wordHint={wordHint} />}
+      {view && <StationPanel view={view} listener={player.player.id} wordHint={wordHint} />}
 
       <nav className="mt-8 flex flex-col items-center gap-4">
         {stationId !== undefined && stationId !== live.id && (
