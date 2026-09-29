@@ -11,7 +11,7 @@ export function Masthead() {
   return (
     <header className="mb-6 text-center">
       <p className="smallcaps text-sm text-ink-soft">Gent · Anno MMXXVI</p>
-      <h1 className="font-display text-5xl leading-none text-oxblood">The Abbey Crawl</h1>
+      <h1 className="font-display text-5xl leading-none text-oxblood">Monk Marko's Crawl</h1>
       <div className="rule mt-3 text-sm" aria-hidden>
         ✠
       </div>

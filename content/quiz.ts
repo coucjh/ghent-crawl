@@ -7,22 +7,22 @@ import type { Station } from "@/lib/types";
 export const MAX_ORDERS = 4;
 
 export const STATIONS: Station[] = [
-  {
-    id: 1,
-    name: "Of Ghent",
-    pub: "The First Tavern (to be chosen)",
-    word: "pax",
-    questions: [
-      { id: "q1", type: "text", prompt: "What is the name of the medieval castle in the centre of Ghent?", answers: ["Gravensteen", "'s-Gravensteen", "Castle of the Counts"] },
-      { id: "q2", type: "choice", prompt: "Which river meets the Lys in Ghent?", options: ["Scheldt", "Meuse", "Rhine", "Yser"], answer: "Scheldt" },
-      { id: "q3", type: "text", prompt: "The Ghent Altarpiece is also known as the Adoration of the Mystic…?", answers: ["Lamb"] },
-      { id: "q4", type: "text", prompt: "Which family of painters created the Ghent Altarpiece?", answers: ["Van Eyck", "Van Eyck brothers", "Jan van Eyck", "Hubert and Jan van Eyck"] },
-      { id: "q5", type: "text", prompt: "Which Holy Roman Emperor was born in Ghent in 1500?", answers: ["Charles V", "Charles the Fifth", "Karel V", "Charles 5"] },
-      { id: "q6", type: "choice", prompt: "What is the official language of Ghent?", options: ["Dutch", "French", "German", "English"], answer: "Dutch" },
-      { id: "q7", type: "text", prompt: "What is the name of Ghent's famous ten-day summer festival?", answers: ["Gentse Feesten", "Ghent Festivities", "Ghent Festival"] },
-      { id: "q8", type: "text", prompt: "What creature sits atop Ghent's belfry as a weathervane?", answers: ["Dragon", "A dragon"], points: 2 },
-    ],
-  },
+    {
+      id: 1,
+      name: "Peep show quotes involving Mark",
+      pub: "Dulle Griet",
+      word: "pax",
+      questions: [
+        { id: "q1", type: "text", prompt: "Complete this sentence, Hey Marrrk... come and put your tongue up Lindsey's arsehole [BLANK]", answers: ["It's Clean!", "its clean", "its clean!"] },
+        { id: "q2", type: "choice", prompt: "Mark, horrified at the curry house: \"Four naan, Jeremy? Four? That's...\"", options: ["Insane", "Obscene", "Madness", "Disgusting"], answer: "Insane" },
+        { id: "q3", type: "text", prompt: "Super Hans warns Mark not to trust popular opinion: \"People like Coldplay and voted for the...\"", answers: ["Nazis", "the Nazis", "Nazi", "Nazi party"] },
+        { id: "q4", type: "text", prompt: "Mark tries to stay calm at a party: \"I'm Louis Theroux. I'm Louis Theroux with his wry smile at the...\"", answers: ["Orgy", "the orgy", "an orgy"] },
+        { id: "q5", type: "choice", prompt: "According to Mark, saying 'I love you' is like firing first in a...", options: ["Duel", "War", "Gunfight", "Penalty shootout"], answer: "Duel" },
+        { id: "q6", type: "text", prompt: "Mark, on buying the flat: \"I've entered the abyss. I've bought a [BLANK] in the abyss.\"", answers: ["House", "a house"] },
+        { id: "q7", type: "choice", prompt: "Mark backs out of a date: \"Can't do it. It's too much. I'm not [BLANK]; I can't date.\"", options: ["American", "French", "Italian", "Jeremy"], answer: "American" },
+        { id: "q8", type: "text", prompt: "Mark sums up his worldview: \"Life is all pain. Pain, rejection and...\"", answers: ["Gloom", "gloom"], points: 2 },
+      ],
+    },
   {
     id: 2,
     name: "Of Beer & Brewing",
