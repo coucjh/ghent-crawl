@@ -3,13 +3,21 @@
 import Image from "next/image";
 import { useRef, useState, useSyncExternalStore } from "react";
 
-/** A picture-round image: fills the column, tap to see it full screen. */
-export function Picture({ src }: { src: string }) {
+/**
+ * A picture: fills the column, tap to see it full screen. `plain` skips Next's image optimiser — needed for private
+ * challenge photos, which the optimiser can't fetch without the viewer's login cookie.
+ */
+export function Picture({ src, plain = false, alt = "The picture for this question" }: { src: string; plain?: boolean; alt?: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
   return (
     <>
       <button type="button" onClick={() => dialog.current?.showModal()} className="mt-3 block w-full border border-gilt p-1">
-        <Image src={src} alt="The picture for this question" width={1200} height={900} sizes="(max-width: 448px) 100vw, 448px" className="h-auto w-full" />
+        {plain ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt={alt} className="h-auto w-full" />
+        ) : (
+          <Image src={src} alt={alt} width={1200} height={900} sizes="(max-width: 448px) 100vw, 448px" className="h-auto w-full" />
+        )}
         <span className="smallcaps mt-1 block text-center text-xs text-ink-soft">Tap to enlarge</span>
       </button>
       <dialog
@@ -17,7 +25,12 @@ export function Picture({ src }: { src: string }) {
         onClick={() => dialog.current?.close()}
         className="m-auto max-h-none max-w-none bg-transparent p-2 backdrop:bg-ink/90"
       >
-        <Image src={src} alt="The picture for this question, enlarged" width={1600} height={1200} sizes="100vw" className="h-auto max-h-[90dvh] w-auto max-w-[96vw]" />
+        {plain ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt={`${alt}, enlarged`} className="h-auto max-h-[90dvh] w-auto max-w-[96vw]" />
+        ) : (
+          <Image src={src} alt={`${alt}, enlarged`} width={1600} height={1200} sizes="100vw" className="h-auto max-h-[90dvh] w-auto max-w-[96vw]" />
+        )}
         <p className="smallcaps mt-2 text-center text-sm text-vellum-light">Tap to close</p>
       </dialog>
     </>

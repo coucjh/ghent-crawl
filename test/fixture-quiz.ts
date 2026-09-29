@@ -41,12 +41,23 @@ export const STATIONS: Station[] = [
   filler(5, "amen"),
 ];
 
-export const PILGRIMAGE: Pilgrimage = {
-  name: "The Pilgrimage",
-  opensWith: 1,
-  closesWith: 4,
-  questions: [
-    { id: "q1", type: "text", prompt: "Cathedral saint?", answers: ["Bavo", "Saint Bavo"] },
-    { id: "q2", type: "music", prompt: "On the road", clip: "/media/m1.mp3", artist: ["Kevin MacLeod"], song: ["Sneaky Snitch"] },
-  ],
-};
+export const PILGRIMAGES: Pilgrimage[] = [
+  {
+    name: "The First Pilgrimage",
+    opensWith: 1,
+    closesWith: 3,
+    questions: [
+      { id: "q1", type: "text", prompt: "Cathedral saint?", answers: ["Bavo", "Saint Bavo"] },
+      { id: "q2", type: "music", prompt: "On the road", clip: "/media/m1.mp3", artist: ["Kevin MacLeod"], song: ["Sneaky Snitch"] },
+    ],
+  },
+  {
+    name: "The Painters' Pilgrimage",
+    opensWith: 3,
+    closesWith: 5,
+    questions: [
+      { id: "q1", type: "photo", prompt: "Re-enact the Mystic Lamb", image: "/media/r1.jpg" },
+      { id: "q2", type: "photo", prompt: "Re-enact Bosch", image: "/media/r2.jpg", points: 3 },
+    ],
+  },
+];

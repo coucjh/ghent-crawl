@@ -31,7 +31,14 @@ export type MusicQuestion = QuestionBase & {
   song: string[];
 };
 
-export type Question = TextQuestion | ChoiceQuestion | MusicQuestion;
+/** A photo challenge, e.g. re-enact this painting. The Abbots crown one Order's photo; only it scores. */
+export type PhotoQuestion = QuestionBase & {
+  type: "photo";
+  /** What to re-enact, e.g. a painting under /public/media. */
+  image: string;
+};
+
+export type Question = TextQuestion | ChoiceQuestion | MusicQuestion | PhotoQuestion;
 
 export type Station = {
   id: number;
@@ -42,7 +49,7 @@ export type Station = {
   questions: Question[];
 };
 
-/** One Pilgrimage for the night: answered between (and during) pubs, with no Word. */
+/** A round answered between (and during) pubs, with no Word. The night can have several. */
 export type Pilgrimage = {
   name: string;
   /** Opens automatically when this Station opens. */
@@ -53,7 +60,7 @@ export type Pilgrimage = {
 };
 
 /** One answer box. Text and choice questions have one (its id is the question's); music questions have two. */
-export type PublicPart = { id: string; label?: string; kind: "text" | "choice"; options?: string[]; points: number };
+export type PublicPart = { id: string; label?: string; kind: "text" | "choice" | "photo"; options?: string[]; points: number };
 
 /** A question as sent to the browser — correct answers stripped. */
 export type PublicQuestion = {

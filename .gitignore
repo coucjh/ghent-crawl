@@ -50,3 +50,6 @@ next-env.d.ts
 # full-length songs for the music round (only the cut clips in public/media are committed)
 /media-src/*
 !/media-src/clips.json
+
+# challenge photos in local dev (production uses private Vercel Blob)
+/.uploads

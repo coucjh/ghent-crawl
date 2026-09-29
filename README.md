@@ -29,8 +29,10 @@ Everything lives in [`content/quiz.ts`](content/quiz.ts): Station names, pubs, W
   names (the filename is visible to players).
 - `type: "music"` questions have a `clip` plus accepted `artist` and `song` answers; each box scores separately.
   Clips play once per phone.
-- `PILGRIMAGE` is answered on the road: it opens with Station `opensWith` and closes (and is marked) when Station
+- `PILGRIMAGES` are answered on the road: each opens with Station `opensWith` and closes (and is marked) when Station
   `closesWith` opens.
+- `type: "photo"` questions show an `image` (e.g. a painting to re-enact); each Order sends one photo and the Abbots
+  crown the best, which alone scores (5 points unless `points` says otherwise).
 
 ### Music clips
 
@@ -44,9 +46,11 @@ show the answer. Needs ffmpeg (`brew install ffmpeg`).
 1. Push this repo to GitHub and import it in Vercel.
 2. In the Vercel project: **Storage → Create → Neon** (pick an EU region, e.g. Frankfurt). This sets `DATABASE_URL`
    and gives every Preview deployment its own database branch.
-3. **Settings → Environment Variables**: set `ABBOT_SECRET` (the Abbots' password) and `SESSION_SECRET`
+3. **Storage → Create → Blob** (EU region, **private** access if asked) for the photo challenges. This sets
+   `BLOB_READ_WRITE_TOKEN`. Without it, photo uploads on Vercel fail with a message saying so.
+4. **Settings → Environment Variables**: set `ABBOT_SECRET` (the Abbots' password) and `SESSION_SECRET`
    (`openssl rand -base64 32`) for Production and Preview.
-4. Deploy. `npm run build` runs the database migrations first.
+5. Deploy. `npm run build` runs the database migrations first.
 
 Rehearse on a Preview deployment, then press *Reset the Abbey* on Production before the night.
 

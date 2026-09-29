@@ -1,12 +1,12 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { and, eq, lte } from "drizzle-orm";
-import { MAX_ORDERS, PILGRIMAGE, STATIONS } from "@/content/quiz";
-import { LAST_ORDERS_SECONDS, ORDER_EMOJI, roman } from "./config";
+import { MAX_ORDERS, PILGRIMAGES, STATIONS } from "@/content/quiz";
+import { CROWNED_PHOTO_POINTS, LAST_ORDERS_SECONDS, ORDER_EMOJI, roman } from "./config";
 import { getDb } from "./db";
 import { answers, game, players, stationStates, teams, teamStations } from "./db/schema";
 import { isCorrect, wordMatches } from "./marking";
-import type { ChoiceQuestion, PublicQuestion, Question, Station, StationStatus, TextQuestion } from "./types";
+import type { ChoiceQuestion, Pilgrimage, PublicQuestion, Question, Station, StationStatus, TextQuestion } from "./types";
 
 // All game rules live here. Pages and server actions call these functions and never touch the tables directly.
 
@@ -19,32 +19,44 @@ export function stationById(id: number): Station | undefined {
   return STATIONS.find((s) => s.id === id);
 }
 
-/** The Pilgrimage is stored like a Station with this id: it has answers and a status, but no Word. */
-export const PILGRIMAGE_ID = 0;
+// Pilgrimages are stored like Stations (answers, a status) under ids 101, 102…, but have no Word.
+const PILGRIMAGE_BASE = 100;
+/** The id of the nth Pilgrimage (1-based), as used in URLs: /pilgrimage/n. */
+export const pilgrimageId = (n: number) => PILGRIMAGE_BASE + n;
+export const isPilgrimage = (id: number) => id > PILGRIMAGE_BASE;
+const pilgrimageOf = (id: number): Pilgrimage | undefined => (isPilgrimage(id) ? PILGRIMAGES[id - PILGRIMAGE_BASE - 1] : undefined);
 
-/** Anything with questions to answer: a Station, or the Pilgrimage. */
-type Round = { id: number; name: string; pub: string; label: string; questions: Question[] };
+/** Anything with questions to answer: a Station, or a Pilgrimage. */
+type Round = { id: number; name: string; pub: string; label: string; questions: Question[]; pilgrimage?: Pilgrimage };
 
 function roundById(id: number): Round | undefined {
-  if (id === PILGRIMAGE_ID)
-    return { id, name: PILGRIMAGE.name, pub: "the road between taverns", label: "✦", questions: PILGRIMAGE.questions };
+  const p = pilgrimageOf(id);
+  if (p) return { id, name: p.name, pub: "the road between taverns", label: `✦${roman(id - PILGRIMAGE_BASE)}`, questions: p.questions, pilgrimage: p };
   const s = stationById(id);
   return s && { ...s, label: roman(s.id) };
 }
 
-/** How a round is named in passing: "Station II", "the Pilgrimage". */
-export const roundName = (id: number) => (id === PILGRIMAGE_ID ? "the Pilgrimage" : `Station ${roman(id)}`);
+/** How a round is named in passing: "Station II", "the First Pilgrimage". */
+export function roundName(id: number) {
+  const p = pilgrimageOf(id);
+  return p ? p.name.replace(/^The /, "the ") : `Station ${roman(id)}`;
+}
 
-/** Rounds in the order their points land: the Pilgrimage just before the Station whose opening closes it. */
+/** Every Pilgrimage's id, in order. */
+export const PILGRIMAGE_IDS = PILGRIMAGES.map((_, i) => pilgrimageId(i + 1));
+
+/** Rounds in the order their points land: each Pilgrimage just before the Station whose opening closes it. */
 const ROUNDS_IN_ORDER: Round[] = STATIONS.flatMap((s) => [
-  ...(s.id === PILGRIMAGE.closesWith ? [roundById(PILGRIMAGE_ID)!] : []),
+  ...PILGRIMAGE_IDS.filter((id) => pilgrimageOf(id)!.closesWith === s.id).map((id) => roundById(id)!),
   roundById(s.id)!,
 ]);
 
-/** One answer box: what a player fills in and how it is marked. Answers are stored per part id. */
-type Part = { id: string; label?: string; markAs: TextQuestion | ChoiceQuestion; points: number };
+/** One answer box: what a player fills in and how it is marked. Answers are stored per part id.
+ *  Photo parts have no `markAs`: the Abbots crown one photo instead. */
+type Part = { id: string; label?: string; markAs: TextQuestion | ChoiceQuestion | null; points: number };
 
 function partsOf(q: Question): Part[] {
+  if (q.type === "photo") return [{ id: q.id, markAs: null, points: q.points ?? CROWNED_PHOTO_POINTS }];
   const points = q.points ?? 1;
   if (q.type !== "music") return [{ id: q.id, markAs: q, points }];
   const text = (answers: string[]): TextQuestion => ({ id: q.id, type: "text", prompt: q.prompt, answers });
@@ -63,7 +75,7 @@ function findPart(questions: Question[], partId: string) {
 }
 
 const maxPoints = (questions: Question[]) => questions.flatMap(partsOf).reduce((n, p) => n + p.points, 0);
-const acceptedOf = (p: Part) => (p.markAs.type === "choice" ? [p.markAs.answer] : p.markAs.answers);
+const acceptedOf = (p: Part) => (!p.markAs ? [] : p.markAs.type === "choice" ? [p.markAs.answer] : p.markAs.answers);
 
 function publicQuestion(q: Question): PublicQuestion {
   return {
@@ -75,8 +87,8 @@ function publicQuestion(q: Question): PublicQuestion {
     parts: partsOf(q).map((p) => ({
       id: p.id,
       label: p.label,
-      kind: p.markAs.type,
-      options: p.markAs.type === "choice" ? p.markAs.options : undefined,
+      kind: p.markAs?.type ?? "photo",
+      options: p.markAs?.type === "choice" ? p.markAs.options : undefined,
       points: p.points,
     })),
   };
@@ -124,15 +136,16 @@ export async function openStation(stationId: number): Promise<Result> {
     .values({ stationId, status: "open" })
     .onConflictDoUpdate({ target: stationStates.stationId, set: { status: "open", closesAt: null } });
 
-  // The Pilgrimage rides along with the pub Stations: no Abbot action needed.
-  if (stationId === PILGRIMAGE.opensWith)
-    await db.insert(stationStates).values({ stationId: PILGRIMAGE_ID, status: "open" }).onConflictDoNothing();
-  if (stationId === PILGRIMAGE.closesWith) await closeStation(PILGRIMAGE_ID);
+  // Pilgrimages ride along with the pub Stations: no Abbot action needed. Close before opening, so a hand-over works.
+  for (const id of PILGRIMAGE_IDS) if (pilgrimageOf(id)!.closesWith === stationId) await closeStation(id);
+  for (const id of PILGRIMAGE_IDS)
+    if (pilgrimageOf(id)!.opensWith === stationId)
+      await db.insert(stationStates).values({ stationId: id, status: "open" }).onConflictDoNothing();
   return { ok: true };
 }
 
 export async function callLastOrders(stationId: number, seconds = LAST_ORDERS_SECONDS): Promise<Result> {
-  if (stationId === PILGRIMAGE_ID) return fail("The Pilgrimage closes when its Station opens.");
+  if (isPilgrimage(stationId)) return fail("A Pilgrimage closes when its Station opens.");
   const states = await getStationStates();
   if (states.get(stationId)?.status !== "open") return fail("This Station is not open.");
   const db = await getDb();
@@ -158,9 +171,10 @@ export async function closeStation(stationId: number): Promise<Result> {
   const given = await db.select().from(answers).where(eq(answers.stationId, stationId));
   for (const a of given) {
     const found = findPart(station.questions, a.questionId);
+    if (found && !found.part.markAs) continue; // photos: the Abbots' crown decides
     await db
       .update(answers)
-      .set({ correct: found ? isCorrect(found.part.markAs, a.value) : false })
+      .set({ correct: found?.part.markAs ? isCorrect(found.part.markAs, a.value) : false })
       .where(and(eq(answers.teamId, a.teamId), eq(answers.stationId, stationId), eq(answers.questionId, a.questionId)));
   }
   return { ok: true };
@@ -249,10 +263,12 @@ export async function renameOrder(teamId: string, rawName: string): Promise<Resu
   return { ok: true };
 }
 
-export async function deleteOrder(teamId: string): Promise<Result> {
+/** Returns the Order's photo keys so the caller can delete the files too. */
+export async function deleteOrder(teamId: string): Promise<Result<{ photos: string[] }>> {
+  const photos = await photoKeys(teamId);
   const db = await getDb();
   await db.delete(teams).where(eq(teams.id, teamId));
-  return { ok: true };
+  return { ok: true, photos };
 }
 
 // ─── Playing a Station ──────────────────────────────────────────────────────
@@ -293,7 +309,7 @@ async function assertCanWrite(teamId: string, stationId: number): Promise<Result
   if (!station) return fail("No such Station.");
   const states = await getStationStates();
   if (states.get(stationId)?.status !== "open") return fail("This Station is closed.");
-  if (stationId === PILGRIMAGE_ID) return { ok: true, station }; // no Word, no sealing
+  if (isPilgrimage(stationId)) return { ok: true, station }; // no Word, no sealing
   const ts = await teamStation(teamId, stationId);
   if (!ts) return fail("Speak the Word first.");
   if (ts.sealedAt) return fail("Your answers are sealed.");
@@ -306,6 +322,7 @@ export async function saveAnswer(teamId: string, stationId: number, questionId: 
   const found = findPart(check.station.questions, questionId);
   if (!found) return fail("No such question.");
   const { markAs } = found.part;
+  if (!markAs) return fail("Photos are sent with savePhoto.");
   const value = rawValue.slice(0, 200);
   if (markAs.type === "choice" && value !== "" && !markAs.options.includes(value)) return fail("Not one of the options.");
 
@@ -321,7 +338,7 @@ export async function saveAnswer(teamId: string, stationId: number, questionId: 
 }
 
 export async function sealAnswers(teamId: string, stationId: number): Promise<Result> {
-  if (stationId === PILGRIMAGE_ID) return fail("The Pilgrimage is never sealed; it closes when its Station opens.");
+  if (isPilgrimage(stationId)) return fail("A Pilgrimage is never sealed; it closes when its Station opens.");
   const check = await assertCanWrite(teamId, stationId);
   if (!check.ok) return check;
   const db = await getDb();
@@ -332,7 +349,90 @@ export async function sealAnswers(teamId: string, stationId: number): Promise<Re
   return { ok: true };
 }
 
+/** Stores which photo an Order sent for a photo challenge. Replacing it loses any crown. Returns the photo it replaced. */
+export async function savePhoto(
+  teamId: string,
+  stationId: number,
+  questionId: string,
+  key: string,
+): Promise<Result<{ replaced: string | null }>> {
+  const check = await assertCanWrite(teamId, stationId);
+  if (!check.ok) return check;
+  const found = findPart(check.station.questions, questionId);
+  if (!found || found.part.markAs) return fail("That is not a photo challenge.");
+
+  const db = await getDb();
+  const where = and(eq(answers.teamId, teamId), eq(answers.stationId, stationId), eq(answers.questionId, questionId));
+  const [previous] = await db.select().from(answers).where(where);
+  await db
+    .insert(answers)
+    .values({ teamId, stationId, questionId, value: key })
+    .onConflictDoUpdate({
+      target: [answers.teamId, answers.stationId, answers.questionId],
+      set: { value: key, updatedAt: new Date(), correct: null },
+    });
+  return { ok: true, replaced: previous?.value || null };
+}
+
+/** The Abbots crown the one photo that scores for a challenge. Crowning another moves the crown. */
+export async function crownPhoto(stationId: number, questionId: string, teamId: string): Promise<Result> {
+  const found = findPart(roundById(stationId)?.questions ?? [], questionId);
+  if (!found || found.part.markAs) return fail("That is not a photo challenge.");
+  const db = await getDb();
+  const challenge = and(eq(answers.stationId, stationId), eq(answers.questionId, questionId));
+  const [entry] = await db.select().from(answers).where(and(challenge, eq(answers.teamId, teamId)));
+  if (!entry?.value) return fail("That Order sent no photo.");
+  await db.update(answers).set({ correct: false }).where(challenge);
+  await db.update(answers).set({ correct: true }).where(and(challenge, eq(answers.teamId, teamId)));
+  return { ok: true };
+}
+
+export type PhotoChallenge = {
+  roundId: number;
+  partId: string;
+  prompt: string;
+  painting: string;
+  status: StationStatus;
+  entries: { teamId: string; name: string; emoji: string; key: string; crowned: boolean }[];
+};
+
+/** For the Abbots: every photo challenge with the photos sent so far, in founding order. */
+export async function getPhotoBoard(): Promise<PhotoChallenge[]> {
+  const states = await getStationStates();
+  const db = await getDb();
+  const [rows, allTeams] = await Promise.all([db.select().from(answers), db.select().from(teams).orderBy(teams.createdAt)]);
+  return PILGRIMAGE_IDS.flatMap((roundId) =>
+    pilgrimageOf(roundId)!.questions.flatMap((q) =>
+      q.type !== "photo"
+        ? []
+        : [
+            {
+              roundId,
+              partId: q.id,
+              prompt: q.prompt,
+              painting: q.image,
+              status: states.get(roundId)!.status,
+              entries: allTeams.flatMap((t) => {
+                const a = rows.find((r) => r.teamId === t.id && r.stationId === roundId && r.questionId === q.id);
+                return a?.value ? [{ teamId: t.id, name: t.name, emoji: t.emoji, key: a.value, crowned: a.correct === true }] : [];
+              }),
+            },
+          ],
+    ),
+  );
+}
+
+/** Every stored photo key, optionally for one Order — so the files can be deleted with it. */
+async function photoKeys(teamId?: string) {
+  const db = await getDb();
+  const rows = await db.select().from(answers);
+  return rows
+    .filter((r) => (!teamId || r.teamId === teamId) && r.value && findPart(roundById(r.stationId)?.questions ?? [], r.questionId)?.part.markAs === null)
+    .map((r) => r.value);
+}
+
 export async function appeal(teamId: string, stationId: number, questionId: string): Promise<Result> {
+  if (findPart(roundById(stationId)?.questions ?? [], questionId)?.part.markAs === null) return fail("Photos can't be appealed.");
   const states = await getStationStates();
   if (states.get(stationId)?.status !== "closed") return fail("Appeals open once the Station closes.");
   const db = await getDb();
@@ -364,6 +464,8 @@ export type AnswerView = { value: string; correct: boolean | null; appeal: "pend
 
 export type StationView = {
   id: number;
+  /** For a Pilgrimage: the Stations whose opening opens and closes it. */
+  pilgrimage: { opensWith: number; closesWith: number } | null;
   /** "IV", or "✦" for the Pilgrimage. */
   label: string;
   name: string;
@@ -379,13 +481,15 @@ export type StationView = {
   corrections: Record<string, string> | null;
   score: number | null;
   maxScore: number;
+  /** Closed, but a photo this Order sent hasn't been judged yet. */
+  awaitingJudgement: boolean;
 };
 
 export async function getStationView(teamId: string, stationId: number): Promise<StationView | null> {
   const station = roundById(stationId);
   if (!station) return null;
   const state = (await getStationStates()).get(stationId)!;
-  const pilgrimage = stationId === PILGRIMAGE_ID;
+  const pilgrimage = isPilgrimage(stationId);
   const ts = pilgrimage ? null : await teamStation(teamId, stationId);
   const unlocked = pilgrimage ? state.status !== "sealed" : !!ts;
   const db = await getDb();
@@ -398,6 +502,7 @@ export async function getStationView(teamId: string, stationId: number): Promise
   const showQuestions = closed || (state.status === "open" && unlocked);
   return {
     id: station.id,
+    pilgrimage: station.pilgrimage ? { opensWith: station.pilgrimage.opensWith, closesWith: station.pilgrimage.closesWith } : null,
     label: station.label,
     name: station.name,
     pub: station.pub,
@@ -407,9 +512,13 @@ export async function getStationView(teamId: string, stationId: number): Promise
     sealed: !!ts?.sealedAt,
     questions: showQuestions ? station.questions.map(publicQuestion) : null,
     answers: Object.fromEntries(rows.map((r) => [r.questionId, { value: r.value, correct: r.correct, appeal: r.appeal }])),
-    corrections: closed ? Object.fromEntries(station.questions.flatMap(partsOf).map((p) => [p.id, acceptedOf(p)[0]])) : null,
+    corrections: closed
+      ? Object.fromEntries(station.questions.flatMap(partsOf).flatMap((p) => (p.markAs ? [[p.id, acceptedOf(p)[0]]] : [])))
+      : null,
     score: closed ? scoreRows(station, rows) : null,
     maxScore: maxPoints(station.questions),
+    awaitingJudgement:
+      closed && rows.some((r) => r.value && r.correct === null && findPart(station.questions, r.questionId)?.part.markAs === null),
   };
 }
 
@@ -439,7 +548,10 @@ function lastClosedRound(states: Map<number, StationState>): number | null {
 
 /** Every Order with its total, highest first. Ties keep founding order. */
 export async function getStandings(): Promise<Standing[]> {
-  const lastClosed = lastClosedRound(await getStationStates());
+  const states = await getStationStates();
+  const lastClosed = lastClosedRound(states);
+  // Points count once their round has closed — a crowned photo stays hidden until its Pilgrimage ends.
+  const scored = ROUNDS_IN_ORDER.filter((r) => states.get(r.id)!.status === "closed");
   const db = await getDb();
   const [allTeams, allPlayers, correctRows] = await Promise.all([
     db.select().from(teams).orderBy(teams.createdAt),
@@ -448,7 +560,7 @@ export async function getStandings(): Promise<Standing[]> {
   ]);
   return allTeams
     .map((t, lane) => {
-      const byStation = ROUNDS_IN_ORDER.map((s) => ({
+      const byStation = scored.map((s) => ({
         id: s.id,
         points: scoreRows(s, correctRows.filter((r) => r.teamId === t.id && r.stationId === s.id)),
       }));
@@ -558,7 +670,9 @@ export async function getTeamProgress(stationId: number) {
   return new Map(rows.map((r) => [r.teamId, { sealed: !!r.sealedAt }]));
 }
 
-export async function resetAbbey(): Promise<Result> {
+/** Wipes the night. Returns every photo key so the caller can delete the files too. */
+export async function resetAbbey(): Promise<Result<{ photos: string[] }>> {
+  const photos = await photoKeys();
   const db = await getDb();
   await db.delete(answers);
   await db.delete(teamStations);
@@ -566,5 +680,5 @@ export async function resetAbbey(): Promise<Result> {
   await db.delete(teams);
   await db.delete(stationStates);
   await db.delete(game);
-  return { ok: true };
+  return { ok: true, photos };
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { leaveAction } from "@/app/actions";
-import { PILGRIMAGE_ID, getStationStates, getStationView, stationById, type StationView } from "@/lib/game";
+import { PILGRIMAGE_IDS, getStationStates, getStationView, stationById, type StationView } from "@/lib/game";
 import { devMode, type currentPlayer } from "@/lib/session";
 import { STATIONS } from "@/content/quiz";
 import { roman } from "@/lib/config";
@@ -20,14 +20,14 @@ export function Masthead() {
   );
 }
 
-/** The way into the Pilgrimage, shown on every Station screen while it runs and after it is judged. */
-function PilgrimageLink({ view }: { view: StationView }) {
+/** The way into a Pilgrimage, shown on every other screen while it runs and after it is judged. */
+function PilgrimageLink({ view, n }: { view: StationView; n: number }) {
   const boxes = view.questions?.flatMap((q) => q.parts).length ?? 0;
   const answered = Object.values(view.answers).filter((a) => a.value.trim()).length;
   const open = view.status === "open";
   return (
     <Link
-      href="/pilgrimage"
+      href={`/pilgrimage/${n}`}
       className={`label-frame mb-6 flex items-center gap-3 px-4 py-3 ${open ? "label-frame-urgent" : ""}`}
     >
       <span className="text-3xl text-gilt" aria-hidden>
@@ -36,7 +36,11 @@ function PilgrimageLink({ view }: { view: StationView }) {
       <span className="flex-1">
         <span className="block font-display text-2xl leading-tight text-oxblood">{view.name}</span>
         <span className="block text-sm text-ink-soft">
-          {open ? `Open on the road · ${answered} of ${boxes} answered` : `Judged · ${view.score} of ${view.maxScore} points`}
+          {open
+            ? `Open on the road · ${answered} of ${boxes} answered`
+            : view.awaitingJudgement
+              ? "Closed · awaiting the Abbots' judgement"
+              : `Judged · ${view.score} of ${view.maxScore} points`}
         </span>
       </span>
       <span className="smallcaps text-sm text-oxblood">{open ? "Answer" : "See marks"} →</span>
@@ -55,9 +59,11 @@ export async function PlayerShell({ player, stationId, dev }: { player: Player; 
   const view = await getStationView(player.team.id, shownId);
   const gathering = list[0].status === "sealed"; // members can still join
   const wordHint = devMode && dev ? stationById(shownId)?.word : undefined;
-  const onPilgrimage = shownId === PILGRIMAGE_ID;
-  const pilgrimage =
-    !onPilgrimage && states.get(PILGRIMAGE_ID)!.status !== "sealed" ? await getStationView(player.team.id, PILGRIMAGE_ID) : null;
+  const pilgrimages = await Promise.all(
+    PILGRIMAGE_IDS.map(async (id, i) =>
+      id !== shownId && states.get(id)!.status !== "sealed" ? { n: i + 1, view: (await getStationView(player.team.id, id))! } : null,
+    ),
+  );
 
   return (
     <>
@@ -83,7 +89,7 @@ export async function PlayerShell({ player, stationId, dev }: { player: Player; 
         <SealRow stations={list} current={shownId} />
       </div>
 
-      {pilgrimage && <PilgrimageLink view={pilgrimage} />}
+      {pilgrimages.map((p) => p && <PilgrimageLink key={p.n} n={p.n} view={p.view} />)}
 
       {view && <StationPanel view={view} wordHint={wordHint} />}
 

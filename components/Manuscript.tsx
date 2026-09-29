@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { saveAnswerAction, sealAction } from "@/app/actions";
 import type { AnswerView } from "@/lib/game";
 import type { PublicPart, PublicQuestion } from "@/lib/types";
+import { PhotoField } from "./PhotoField";
 import { ClipPlayer, Picture } from "./QuestionMedia";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -16,9 +17,9 @@ export function Prompt({ q }: { q: PublicQuestion }) {
       </span>
       <span className="sr-only">{q.prompt[0]}</span>
       {q.prompt.slice(1)}
-      {q.parts[0].points > 1 && (
+      {(q.parts[0].points > 1 || q.type === "photo") && (
         <span className="smallcaps ml-2 text-gilt">
-          {q.parts[0].points} points{q.parts.length > 1 ? " each" : ""}
+          {q.parts[0].points} points{q.type === "photo" ? " to the best photo" : q.parts.length > 1 ? " each" : ""}
         </span>
       )}
     </p>
@@ -31,7 +32,7 @@ export function QuestionHead({ q, playable }: { q: PublicQuestion; playable: boo
     <>
       <Prompt q={q} />
       <div className="clear-both">
-        {q.image && <Picture src={q.image} />}
+        {q.image && <Picture src={q.image} alt={q.type === "photo" ? "The painting to re-enact" : undefined} />}
         {q.clip && (playable ? <ClipPlayer src={q.clip} /> : <audio controls preload="none" src={q.clip} className="mt-3 w-full" />)}
       </div>
     </>
@@ -143,9 +144,13 @@ export function Manuscript({
         {questions.map((q) => (
           <li key={q.id} className="clear-both border-b border-vellum-deep pb-5">
             <QuestionHead q={q} playable />
-            {q.parts.map((part) => (
-              <AnswerField key={part.id} stationId={stationId} part={part} serverValue={answers[part.id]?.value ?? ""} locked={sealed} />
-            ))}
+            {q.parts.map((part) =>
+              part.kind === "photo" ? (
+                <PhotoField key={part.id} stationId={stationId} partId={part.id} serverKey={answers[part.id]?.value ?? ""} />
+              ) : (
+                <AnswerField key={part.id} stationId={stationId} part={part} serverValue={answers[part.id]?.value ?? ""} locked={sealed} />
+              ),
+            )}
           </li>
         ))}
       </ol>

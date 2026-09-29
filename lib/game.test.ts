@@ -191,14 +191,15 @@ describe("the race", () => {
     let book = await g.getBook();
     if (book.state !== "open") throw new Error(book.state);
     expect(book.track).toEqual({
-      total: 18,
+      total: 26,
       gates: [
         { id: 1, label: "I", at: 9 },
         { id: 2, label: "II", at: 10 },
-        { id: 3, label: "III", at: 13 },
-        { id: g.PILGRIMAGE_ID, label: "✦", at: 16 },
+        { id: g.pilgrimageId(1), label: "✦I", at: 13 },
+        { id: 3, label: "III", at: 16 },
         { id: 4, label: "IV", at: 17 },
-        { id: 5, label: "V", at: 18 },
+        { id: g.pilgrimageId(2), label: "✦II", at: 25 },
+        { id: 5, label: "V", at: 26 },
       ],
       last: "Station I",
     });
@@ -221,59 +222,141 @@ describe("the race", () => {
   });
 });
 
-describe("the Pilgrimage", () => {
-  const P = g.PILGRIMAGE_ID;
+describe("the Pilgrimages", () => {
+  const P1 = g.pilgrimageId(1);
+  const P2 = g.pilgrimageId(2);
+  const status = async (id: number) => (await g.getStationStates()).get(id)!.status;
   const hold = async (id: number) => {
     await g.openStation(id);
     await g.closeStation(id);
   };
 
-  it("opens with Station I, needs no Word, stays open between pubs, and closes when Station IV opens", async () => {
+  it("hand over at Station III: the first opens with I and closes as III opens, the second opens then and closes with V", async () => {
     const a = await order("A");
-    expect((await g.getStationStates()).get(P)!.status).toBe("sealed");
-    expect((await g.saveAnswer(a.id, P, "q1", "Bavo")).ok).toBe(false);
+    expect(await status(P1)).toBe("sealed");
+    expect((await g.saveAnswer(a.id, P1, "q1", "Bavo")).ok).toBe(false);
 
     await g.openStation(1);
-    expect((await g.getStationStates()).get(P)!.status).toBe("open");
-    const view = (await g.getStationView(a.id, P))!;
-    expect(view).toMatchObject({ unlocked: true, sealed: false, score: null, maxScore: 3 });
-    expect((await g.saveAnswer(a.id, P, "q1", "Bavo")).ok).toBe(true); // no Word needed
-    expect((await g.sealAnswers(a.id, P)).ok).toBe(false);
-    expect((await g.callLastOrders(P)).ok).toBe(false);
+    expect(await status(P1)).toBe("open");
+    expect(await status(P2)).toBe("sealed");
+    const view = (await g.getStationView(a.id, P1))!;
+    expect(view).toMatchObject({ unlocked: true, sealed: false, score: null, maxScore: 3, pilgrimage: { opensWith: 1, closesWith: 3 } });
+    expect((await g.saveAnswer(a.id, P1, "q1", "Bavo")).ok).toBe(true); // no Word needed
+    expect((await g.sealAnswers(a.id, P1)).ok).toBe(false);
+    expect((await g.callLastOrders(P1)).ok).toBe(false);
 
     await g.closeStation(1);
     await hold(2);
-    await hold(3);
-    expect((await g.saveAnswer(a.id, P, "q2.song", "sneaky snitch")).ok).toBe(true); // between pubs
-    expect((await g.getStationStates()).get(P)!.status).toBe("open");
+    expect((await g.saveAnswer(a.id, P1, "q2.song", "sneaky snitch")).ok).toBe(true); // between pubs
+    expect(await status(P1)).toBe("open");
 
-    await g.openStation(4);
-    expect((await g.getStationStates()).get(P)!.status).toBe("closed");
-    expect((await g.saveAnswer(a.id, P, "q2.artist", "Kevin MacLeod")).ok).toBe(false);
-    expect((await g.getStationView(a.id, P))!.score).toBe(2);
+    await g.openStation(3);
+    expect(await status(P1)).toBe("closed");
+    expect(await status(P2)).toBe("open");
+    expect((await g.saveAnswer(a.id, P1, "q2.artist", "Kevin MacLeod")).ok).toBe(false);
+    expect((await g.getStationView(a.id, P1))!.score).toBe(2);
+
+    await g.closeStation(3);
+    await hold(4);
+    await g.openStation(5);
+    expect(await status(P2)).toBe("closed");
   });
 
-  it("keeps its points hidden until it closes, then lands them as its own segment of the race", async () => {
+  it("keeps points hidden until the Pilgrimage closes, then lands them as its own segment of the race", async () => {
     const a = await order("A");
     await g.openStation(1);
-    await g.saveAnswer(a.id, P, "q1", "Saint Bavo");
+    await g.saveAnswer(a.id, P1, "q1", "Saint Bavo");
     await g.closeStation(1);
     await hold(2);
-    await hold(3);
     expect((await g.getStandings())[0].score).toBe(0);
 
-    await g.openStation(4);
+    await g.openStation(3);
     let book = await g.getBook();
     if (book.state !== "open") throw new Error(book.state);
     expect(book.standings[0]).toMatchObject({ score: 1, previousScore: 0 });
-    expect(book.track.gates.map((gate) => gate.label)).toEqual(["I", "II", "III", "✦", "IV", "V"]);
-    expect(book.track.last).toBe("the Pilgrimage");
+    expect(book.track.last).toBe("the First Pilgrimage");
 
-    await g.closeStation(4);
+    await g.closeStation(3);
     book = await g.getBook();
     if (book.state !== "open") throw new Error(book.state);
-    expect(book.track.last).toBe("Station IV");
+    expect(book.track.last).toBe("Station III");
     expect(book.standings[0]).toMatchObject({ score: 1, previousScore: 1 });
+  });
+});
+
+describe("photo challenges", () => {
+  const P2 = g.pilgrimageId(2);
+  const toP2 = async () => {
+    for (const id of [1, 2]) {
+      await g.openStation(id);
+      await g.closeStation(id);
+    }
+    await g.openStation(3);
+  };
+
+  it("take one photo per Order per painting, replaceable until the Pilgrimage closes", async () => {
+    const a = await order("A");
+    expect((await g.savePhoto(a.id, P2, "q1", "a/1.jpg")).ok).toBe(false); // not open yet
+    await toP2();
+
+    expect(await g.savePhoto(a.id, P2, "q1", "a/1.jpg")).toEqual({ ok: true, replaced: null });
+    expect(await g.savePhoto(a.id, P2, "q1", "a/2.jpg")).toEqual({ ok: true, replaced: "a/1.jpg" });
+    expect((await g.saveAnswer(a.id, P2, "q1", "a/3.jpg")).ok).toBe(false); // only through savePhoto
+    expect((await g.savePhoto(a.id, 3, "q1", "a/4.jpg")).ok).toBe(false); // not a photo question
+
+    const view = (await g.getStationView(a.id, P2))!;
+    expect(view.questions![0]).toMatchObject({ image: "/media/r1.jpg", parts: [{ id: "q1", kind: "photo", points: 5 }] });
+    expect(view.answers.q1.value).toBe("a/2.jpg");
+    expect(view.maxScore).toBe(8);
+  });
+
+  it("score only the crowned photo, and only once the Pilgrimage has closed", async () => {
+    const a = await order("A");
+    const b = await order("B");
+    await toP2();
+    await g.savePhoto(a.id, P2, "q1", "a/1.jpg");
+    await g.savePhoto(b.id, P2, "q1", "b/1.jpg");
+    await g.savePhoto(b.id, P2, "q2", "b/2.jpg");
+
+    expect((await g.crownPhoto(P2, "q1", a.id)).ok).toBe(true);
+    expect((await g.crownPhoto(P2, "q1", b.id)).ok).toBe(true); // the Abbots change their minds
+    expect((await g.crownPhoto(P2, "q2", a.id)).ok).toBe(false); // A has no photo for q2
+    expect((await g.getStandings()).map((s) => s.score)).toEqual([0, 0]); // still hidden
+
+    // Replacing a crowned photo loses the crown
+    await g.savePhoto(b.id, P2, "q1", "b/1-again.jpg");
+    expect((await g.getPhotoBoard()).find((c) => c.partId === "q1")!.entries.every((e) => !e.crowned)).toBe(true);
+    await g.crownPhoto(P2, "q1", b.id);
+
+    await g.closeStation(3);
+    await g.openStation(4);
+    await g.closeStation(4);
+    await g.openStation(5); // closes the Pilgrimage
+    await g.crownPhoto(P2, "q2", b.id); // crowned after closing still counts
+
+    const standings = await g.getStandings();
+    expect(standings.find((s) => s.name === "B")!.score).toBe(8);
+    expect(standings.find((s) => s.name === "A")!.score).toBe(0);
+    expect((await g.getStationView(b.id, P2))!.score).toBe(8);
+    expect((await g.appeal(a.id, P2, "q1")).ok).toBe(false); // no appeals on photos
+    expect((await g.savePhoto(a.id, P2, "q2", "a/late.jpg")).ok).toBe(false);
+
+    const board = await g.getPhotoBoard();
+    expect(board).toMatchObject([
+      { roundId: P2, partId: "q1", painting: "/media/r1.jpg", status: "closed", entries: [{ name: "A", crowned: false }, { name: "B", crowned: true }] },
+      { roundId: P2, partId: "q2", entries: [{ name: "B", key: "b/2.jpg", crowned: true }] },
+    ]);
+  });
+
+  it("hands back every photo key when an Order is deleted or the Abbey is reset, so the files can go too", async () => {
+    const a = await order("A");
+    const b = await order("B");
+    await toP2();
+    await g.savePhoto(a.id, P2, "q1", "a/1.jpg");
+    await g.savePhoto(b.id, P2, "q1", "b/1.jpg");
+    await g.saveAnswer(a.id, 3, "q1", "not a photo");
+    expect(await g.deleteOrder(a.id)).toEqual({ ok: true, photos: ["a/1.jpg"] });
+    expect(await g.resetAbbey()).toEqual({ ok: true, photos: ["b/1.jpg"] });
   });
 });
 

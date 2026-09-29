@@ -1,14 +1,16 @@
 import { ActionButton, LoginForm, RenameForm, ResetForm } from "@/components/abbot/controls";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { LastOrders } from "@/components/Countdown";
+import { Picture } from "@/components/QuestionMedia";
 import { roman, WaxSeal } from "@/components/WaxSeal";
-import { PILGRIMAGE, STATIONS } from "@/content/quiz";
+import { PILGRIMAGES, STATIONS } from "@/content/quiz";
 import {
-  PILGRIMAGE_ID,
+  PILGRIMAGE_IDS,
   answerBoxes,
   getAnswerCounts,
   getBook,
   getDisputes,
+  getPhotoBoard,
   getStandings,
   getStationStates,
   getTeamProgress,
@@ -17,6 +19,7 @@ import {
 import { isAbbot } from "@/lib/session";
 import {
   closeStationAction,
+  crownPhotoAction,
   deleteOrderAction,
   grantEntryAction,
   lastOrdersAction,
@@ -72,9 +75,16 @@ export default async function AbbotPage() {
   const progress = openStation ? await getTeamProgress(openStation.id) : new Map<string, { sealed: boolean }>();
   const finalClosed = states.get(STATIONS[STATIONS.length - 1].id)!.status === "closed";
   const openClosesAt = openStation && states.get(openStation.id)!.closesAt;
-  const pilgrimageStatus = states.get(PILGRIMAGE_ID)!.status;
-  const pilgrimageCounts = pilgrimageStatus === "open" ? await getAnswerCounts(PILGRIMAGE_ID) : new Map<string, number>();
-  const pilgrimageBoxes = answerBoxes(PILGRIMAGE_ID);
+  const pilgrimages = await Promise.all(
+    PILGRIMAGES.map(async (p, i) => {
+      const id = PILGRIMAGE_IDS[i];
+      const status = states.get(id)!.status;
+      return { id, p, status, boxes: answerBoxes(id), counts: status === "open" ? await getAnswerCounts(id) : new Map<string, number>() };
+    }),
+  );
+  const photoBoard = await getPhotoBoard();
+  const unjudged = photoBoard.filter((c) => c.status === "closed" && c.entries.length > 0 && !c.entries.some((e) => e.crowned));
+  const photosSent = photoBoard.some((c) => c.entries.length > 0);
 
   return (
     <>
@@ -153,29 +163,31 @@ export default async function AbbotPage() {
             );
           })}
         </ul>
-        <div className={`mt-5 border-t border-gilt pt-4 ${pilgrimageStatus === "open" ? "-mx-2 border-l-4 border-l-oxblood bg-gilt-bright/20 px-2 pb-3" : ""}`}>
-          <p className="text-lg leading-tight">
-            <span className="text-gilt">✦</span> {PILGRIMAGE.name}{" "}
-            <span className={`smallcaps ${STATUS_STYLE[pilgrimageStatus]}`}>· {pilgrimageStatus === "open" ? "open now" : pilgrimageStatus}</span>
-          </p>
-          <p className="text-sm text-ink-soft">
-            Opens with Station {roman(PILGRIMAGE.opensWith)}; closes and is marked when Station {roman(PILGRIMAGE.closesWith)} opens.
-          </p>
-          {pilgrimageStatus === "open" && (
-            <ul className="mt-2 text-base">
-              {standings.map((t) => (
-                <li key={t.teamId} className="flex justify-between gap-3">
-                  <span>
-                    {t.emoji} {t.name}
-                  </span>
-                  <span className="tabular-nums text-ink-soft">
-                    {pilgrimageCounts.get(t.teamId) ?? 0}/{pilgrimageBoxes}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        {pilgrimages.map(({ id, p, status, boxes, counts }) => (
+          <div key={id} className={`mt-5 border-t border-gilt pt-4 ${status === "open" ? "-mx-2 border-l-4 border-l-oxblood bg-gilt-bright/20 px-2 pb-3" : ""}`}>
+            <p className="text-lg leading-tight">
+              <span className="text-gilt">✦</span> {p.name}{" "}
+              <span className={`smallcaps ${STATUS_STYLE[status]}`}>· {status === "open" ? "open now" : status}</span>
+            </p>
+            <p className="text-sm text-ink-soft">
+              Opens with Station {roman(p.opensWith)}; closes and is marked when Station {roman(p.closesWith)} opens.
+            </p>
+            {status === "open" && (
+              <ul className="mt-2 text-base">
+                {standings.map((t) => (
+                  <li key={t.teamId} className="flex justify-between gap-3">
+                    <span>
+                      {t.emoji} {t.name}
+                    </span>
+                    <span className="tabular-nums text-ink-soft">
+                      {counts.get(t.teamId) ?? 0}/{boxes}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
       </Section>
 
       <Section title={`Appeals${disputes.length ? ` (${disputes.length})` : ""}`} tone={disputes.length ? "urgent" : "quiet"}>
@@ -202,6 +214,46 @@ export default async function AbbotPage() {
           </ul>
         )}
       </Section>
+
+      {photosSent && (
+        <Section title="The Photos" tone={unjudged.length ? "urgent" : "default"}>
+          <p className="mb-4 text-base italic text-ink-soft">
+            Crown the one best photo per painting; only it scores. You can crown as they arrive; points show once the
+            Pilgrimage closes.
+          </p>
+          <ul className="space-y-6">
+            {photoBoard.map((c) => (
+              <li key={`${c.roundId}-${c.partId}`} className="border-b border-vellum-deep pb-5">
+                <p className="leading-snug">{c.prompt}</p>
+                <div className="w-1/2">
+                  <Picture src={c.painting} alt="The painting" />
+                </div>
+                {c.entries.length === 0 ? (
+                  <p className="mt-2 italic text-ink-soft">No photos yet.</p>
+                ) : (
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    {c.entries.map((e) => (
+                      <div key={e.teamId} className={e.crowned ? "outline-2 outline-offset-2 outline-gilt" : ""}>
+                        <Picture src={`/photos/${e.key}`} plain alt={`${e.name}'s re-enactment`} />
+                        <p className="mt-1 truncate text-sm">
+                          {e.emoji} {e.name}
+                        </p>
+                        {e.crowned ? (
+                          <p className="smallcaps text-sm font-semibold text-verdigris">👑 Crowned</p>
+                        ) : (
+                          <ActionButton action={crownPhotoAction.bind(null, c.roundId, c.partId, e.teamId)} quiet>
+                            👑 Crown
+                          </ActionButton>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
 
       <Section title="Orders">
         {standings.length === 0 && <p className="italic text-ink-soft">No Orders yet.</p>}
@@ -236,7 +288,14 @@ export default async function AbbotPage() {
         {book.state === "revealed" ? (
           <p className="italic text-verdigris">Revealed. Every phone now shows the final standings.</p>
         ) : finalClosed ? (
-          <ActionButton action={revealAction} confirm="Reveal the winners on every phone?">
+          <ActionButton
+            action={revealAction}
+            confirm={
+              unjudged.length
+                ? `${unjudged.length} painting${unjudged.length > 1 ? "s have" : " has"} no crowned photo yet. Reveal anyway?`
+                : "Reveal the winners on every phone?"
+            }
+          >
             Reveal the Book
           </ActionButton>
         ) : (

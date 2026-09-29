@@ -13,11 +13,13 @@ function missing(): never {
   throw new Error("DATABASE_URL is not set — add a Neon database to this Vercel project (Storage → Neon).");
 }
 
-let dbPromise: Promise<Db> | undefined;
+// One connection per process, shared through globalThis: Next bundles route handlers and pages separately, and two
+// PGlite instances on the same folder would each see a stale copy of the other's writes.
+const shared = globalThis as { abbeyDb?: Promise<Db> };
 
 export function getDb(): Promise<Db> {
-  dbPromise ??= connect();
-  return dbPromise;
+  shared.abbeyDb ??= connect();
+  return shared.abbeyDb;
 }
 
 async function connect(): Promise<Db> {

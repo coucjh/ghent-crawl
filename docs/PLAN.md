@@ -21,21 +21,20 @@ Decisions made while designing the Ghent Abbey Crawl, and what comes next. Diffi
 | Abbot tools | Grant entry without the Word, rename/delete Orders, Reset the Abbey. |
 | Stack | Next.js on Vercel, Neon Postgres (EU), Drizzle. Deploys on every push to `master`; Preview deploys get their own database branch. |
 
-## Phase 2
+## Phase 2 — built
 
-Built: 🖼️ picture round, 🚶 the Pilgrimage, 🎵 music questions. Still to build: 📸 photo challenges.
-
-### 🖼️ Picture round 🟢 — built
+### 🖼️ Picture round 🟢
 - Any question may have an `image`. A Station whose questions all have images *is* a picture round.
 - Images live in `/public/media/`, named neutrally. Tap to enlarge.
 
-### 🚶 The Pilgrimage 🟡 — built
-- **One** Pilgrimage for the whole night, answered between (and during) pubs.
-- Opens automatically when **Station I** opens; closes automatically when **Station IV** opens. Both configurable in `content/quiz.ts`.
-- No Word needed. Its own tab/screen, available whatever pub round is running.
-- Holds any mix of normal questions, music questions and photo challenges.
-- **Points stay hidden until it closes**, then land all at once. On the race it is its own segment between III and IV
-  ("The run of the Pilgrimage").
+### 🚶 Two Pilgrimages 🟡
+- Rounds answered between (and during) pubs. No Word, can't be sealed; each has its own page (`/pilgrimage/1`, `/2`).
+- **The First Pilgrimage** opens with Station I and closes when Station III opens (music and questions).
+- **The Painters' Pilgrimage** opens as Station III opens and closes when Station V opens (painting re-enactments).
+- Open/close Stations are set per Pilgrimage in `content/quiz.ts`. The hand-over at III happens in one step.
+- **Points stay hidden until a Pilgrimage closes**, then land all at once, each as its own segment of the race
+  (I · II · ✦I · III · IV · ✦II · V). The Painters' points first appear in the final reveal, since the Book is sealed
+  from the moment Station V opens.
 
 ### 🎵 Music questions 🟢 — built
 - A `music` question: one clip, two answer boxes — **Artist** and **Song**, 1 point each, fuzzy-marked.
@@ -46,14 +45,17 @@ Built: 🖼️ picture round, 🚶 the Pilgrimage, 🎵 music questions. Still t
 - Full songs go in `media-src/` (git-ignored); only the short clips are committed. Keep the repo private.
 - Test with free tracks (Kevin MacLeod / SoundHelix) until the real songs are bought.
 
-### 📸 Photo challenges 🟡 — not built yet
-- A `photo` question: the answer is a photo. One per challenge per Order; any member can upload or replace it until
-  the Pilgrimage closes (replacing sends it back for marking).
-- Resized on the phone (~1600px, ~300 KB) before upload. Stored in **Vercel Blob** (EU); a local-folder fallback in dev.
-- Abbots mark ✅/❌ for the challenge's points as photos arrive, plus an optional ⭐ **best photo** bonus (+1, one Order
-  per challenge). No appeals.
-- Only Abbots and the Order that took it see a photo. **Reset the Abbey deletes all photos.**
-- Needs a one-off Vercel setup: Storage → Blob.
+### 📸 Painting re-enactments 🟡
+- A `photo` question shows a painting to re-enact (Ghent-based: the Ghent Altarpiece, Bosch in the MSK…). Two of
+  them, meant as one per walk (III→IV, IV→V), though both stay open for the whole Pilgrimage.
+- One photo per Order per painting; any member can send or replace it until the Pilgrimage closes. Replacing a
+  crowned photo loses the crown.
+- **The Abbots crown the single best photo per painting: 5 points, nobody else scores.** They can crown as photos
+  arrive or after it closes; the crown can be moved. Revealing the Book with an uncrowned painting asks first.
+- Resized on the phone (≤1600px JPEG, ~300 KB). Stored **privately** in Vercel Blob and served only through
+  `/photos/…` to the Abbots and the Order that took it; a git-ignored `.uploads/` folder in local dev.
+- No appeals. Deleting an Order or **Reset the Abbey deletes its photos**.
+- Needs a one-off Vercel setup: Storage → Blob (see README).
 
 ## Ideas (not planned)
 

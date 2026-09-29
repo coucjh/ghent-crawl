@@ -85,18 +85,29 @@ export const STATIONS: Station[] = [
   },
 ];
 
-// PLACEHOLDER — the Pilgrimage, answered on the road. Music clips are cut by `npm run clips` (see media-src/clips.json);
-// the test clips are free Kevin MacLeod tracks (docs/test-media-credits.md).
-export const PILGRIMAGE: Pilgrimage = {
-  name: "The Pilgrimage",
-  opensWith: 1,
-  closesWith: 4,
-  questions: [
-    { id: "q1", type: "music", prompt: "Name this chant", clip: "/media/m1.mp3", artist: ["Kevin MacLeod"], song: ["Sneaky Snitch"] },
-    { id: "q2", type: "music", prompt: "Name this chant", clip: "/media/m2.mp3", artist: ["Kevin MacLeod"], song: ["Monkeys Spinning Monkeys"] },
-    { id: "q3", type: "music", prompt: "Name this chant", clip: "/media/m3.mp3", artist: ["Kevin MacLeod"], song: ["Fluffing a Duck"] },
-    { id: "q4", type: "music", prompt: "Name this chant", clip: "/media/m4.mp3", artist: ["Kevin MacLeod"], song: ["Carefree"] },
-    { id: "q5", type: "music", prompt: "Name this chant", clip: "/media/m5.mp3", artist: ["Kevin MacLeod"], song: ["Local Forecast", "Local Forecast Elevator"] },
-    { id: "q6", type: "text", prompt: "Ghent's cathedral is named after which saint?", answers: ["Bavo", "Saint Bavo", "St Bavo", "Sint-Baafs"] },
-  ],
-};
+// PLACEHOLDER — the Pilgrimages, answered on the road. Music clips are cut by `npm run clips` (see media-src/clips.json);
+// the test clips are free Kevin MacLeod tracks and the paintings are public domain (docs/test-media-credits.md).
+export const PILGRIMAGES: Pilgrimage[] = [
+  {
+    name: "The First Pilgrimage",
+    opensWith: 1,
+    closesWith: 3,
+    questions: [
+      { id: "q1", type: "music", prompt: "Name this chant", clip: "/media/m1.mp3", artist: ["Kevin MacLeod"], song: ["Sneaky Snitch"] },
+      { id: "q2", type: "music", prompt: "Name this chant", clip: "/media/m2.mp3", artist: ["Kevin MacLeod"], song: ["Monkeys Spinning Monkeys"] },
+      { id: "q3", type: "music", prompt: "Name this chant", clip: "/media/m3.mp3", artist: ["Kevin MacLeod"], song: ["Fluffing a Duck"] },
+      { id: "q4", type: "music", prompt: "Name this chant", clip: "/media/m4.mp3", artist: ["Kevin MacLeod"], song: ["Carefree"] },
+      { id: "q5", type: "music", prompt: "Name this chant", clip: "/media/m5.mp3", artist: ["Kevin MacLeod"], song: ["Local Forecast", "Local Forecast Elevator"] },
+      { id: "q6", type: "text", prompt: "Ghent's cathedral is named after which saint?", answers: ["Bavo", "Saint Bavo", "St Bavo", "Sint-Baafs"] },
+    ],
+  },
+  {
+    name: "The Painters' Pilgrimage",
+    opensWith: 3,
+    closesWith: 5,
+    questions: [
+      { id: "q1", type: "photo", prompt: "Re-enact the Adoration of the Mystic Lamb, from the Ghent Altarpiece. Best on the walk to Station IV.", image: "/media/r1.jpg" },
+      { id: "q2", type: "photo", prompt: "Re-enact Christ Carrying the Cross, Bosch's crowd of faces in Ghent's MSK. Best on the walk to Station V.", image: "/media/r2.jpg" },
+    ],
+  },
+];

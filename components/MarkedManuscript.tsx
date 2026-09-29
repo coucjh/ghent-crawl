@@ -5,6 +5,23 @@ import { appealAction } from "@/app/actions";
 import type { AnswerView } from "@/lib/game";
 import type { PublicQuestion } from "@/lib/types";
 import { QuestionHead } from "./Manuscript";
+import { Picture } from "./QuestionMedia";
+
+/** A photo challenge after the Pilgrimage closes: your photo, and whether the Abbots crowned it. */
+function PhotoVerdict({ a, points }: { a: AnswerView | undefined; points: number }) {
+  if (!a?.value) return <p className="pt-2 italic text-ink-soft">No photo was sent.</p>;
+  return (
+    <div className="pt-3">
+      <span className="smallcaps text-sm text-ink-soft">Your Order&apos;s re-enactment</span>
+      <Picture src={`/photos/${a.value}`} plain alt="Your Order's re-enactment" />
+      <p className="mt-2 text-center">
+        {a.correct === true && <strong className="text-verdigris">👑 Crowned the finest — +{points}</strong>}
+        {a.correct === false && <span className="italic text-ink-soft">Another Order&apos;s was crowned.</span>}
+        {a.correct === null && <span className="smallcaps text-gilt">Awaiting the Abbots&apos; judgement</span>}
+      </p>
+    </div>
+  );
+}
 
 function AppealButton({ stationId, questionId }: { stationId: number; questionId: string }) {
   const [pending, startTransition] = useTransition();
@@ -51,6 +68,7 @@ export function MarkedManuscript({
           <QuestionHead q={q} playable={false} />
           {q.parts.map((part) => {
             const a = answers[part.id];
+            if (part.kind === "photo") return <PhotoVerdict key={part.id} a={a} points={part.points} />;
             const given = a?.value.trim();
             return (
               <div key={part.id} className="flex items-start gap-3 pt-2">
