@@ -9,12 +9,17 @@ export function ActionButton({
   action,
   children,
   confirm,
+  confirmLabel = "Yes",
   quiet,
+  danger,
 }: {
   action: () => Promise<FormState>;
   children: React.ReactNode;
   confirm?: string;
+  confirmLabel?: string;
   quiet?: boolean;
+  /** Irreversible: the confirm step gets the cold danger style instead of routine oxblood. */
+  danger?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [asking, setAsking] = useState(false);
@@ -29,16 +34,16 @@ export function ActionButton({
     <span className="inline-flex flex-wrap items-center gap-2">
       {asking ? (
         <>
-          <span className="italic">{confirm}</span>
-          <button className="btn px-3 py-1 text-base" onClick={run}>
-            Yes
+          <span className={danger ? "font-semibold text-ink" : "italic"}>{confirm}</span>
+          <button className={`btn whitespace-nowrap px-3 py-1 text-base ${danger ? "btn-danger" : ""}`} onClick={run}>
+            {confirmLabel}
           </button>
-          <button className="btn-quiet btn px-3 py-1 text-base" onClick={() => setAsking(false)}>
+          <button className="btn-quiet btn whitespace-nowrap px-3 py-1 text-base" onClick={() => setAsking(false)}>
             No
           </button>
         </>
       ) : (
-        <button className={`btn px-3 py-1 text-base ${quiet ? "btn-quiet" : ""}`} disabled={pending} onClick={() => (confirm ? setAsking(true) : run())}>
+        <button className={`btn whitespace-nowrap px-3 py-1 text-base ${quiet ? "btn-quiet" : ""}`} disabled={pending} onClick={() => (confirm ? setAsking(true) : run())}>
           {children}
         </button>
       )}
@@ -83,7 +88,7 @@ export function ResetForm() {
       <p>Wipes every Order, player, answer and Station. The questions stay. Type RESET to confirm.</p>
       <div className="flex items-end gap-2">
         <input name="confirm" className="field text-base" autoComplete="off" aria-label="Type RESET" placeholder="RESET" />
-        <button className="btn shrink-0 whitespace-nowrap px-3 py-1 text-base" disabled={pending}>
+        <button className="btn btn-danger shrink-0 whitespace-nowrap px-3 py-1 text-base" disabled={pending}>
           Reset the Abbey
         </button>
       </div>

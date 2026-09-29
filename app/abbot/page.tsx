@@ -15,20 +15,43 @@ import {
   revealAction,
 } from "./actions";
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+type Tone = "default" | "urgent" | "quiet" | "danger";
+
+/** A section's weight follows its stakes: urgent needs the Abbot now, quiet is settled, danger is outside the ritual. */
+function Section({ title, tone = "default", children }: { title: string; tone?: Tone; children: React.ReactNode }) {
+  if (tone === "quiet")
+    return (
+      <section className="mb-6 px-2">
+        <h2 className="smallcaps mb-1 text-lg text-ink-soft">{title}</h2>
+        {children}
+      </section>
+    );
+  if (tone === "danger")
+    return (
+      <section className="mb-6 border border-dashed border-ink-soft/60 px-5 py-5">
+        <h2 className="smallcaps mb-3 text-lg text-ink">{title}</h2>
+        {children}
+      </section>
+    );
   return (
-    <section className="label-frame mb-6 px-5 py-5">
+    <section className={`label-frame mb-6 px-5 py-5 ${tone === "urgent" ? "label-frame-urgent" : ""}`}>
       <h2 className="mb-4 font-display text-3xl text-oxblood">{title}</h2>
       {children}
     </section>
   );
 }
 
+const STATUS_STYLE = {
+  open: "font-semibold text-verdigris",
+  sealed: "text-ink-soft",
+  closed: "text-ink-soft/70",
+} as const;
+
 export default async function AbbotPage() {
   if (!(await isAbbot()))
     return (
       <>
-        <h1 className="mb-6 text-center font-display text-5xl text-oxblood">The Chapter House</h1>
+        <h1 className="mb-6 text-balance text-center font-display text-5xl text-oxblood">The Chapter House</h1>
         <LoginForm />
       </>
     );
@@ -44,22 +67,38 @@ export default async function AbbotPage() {
     <>
       <AutoRefresh />
       {openClosesAt && <LastOrders closesAt={openClosesAt.toISOString()} />}
-      <h1 className="mb-6 text-center font-display text-5xl text-oxblood">The Chapter House</h1>
+      <h1 className="mb-6 text-balance text-center font-display text-5xl text-oxblood">The Chapter House</h1>
 
       <Section title="Stations">
         <ul className="space-y-4">
           {STATIONS.map((s) => {
             const status = states.get(s.id)!.status;
+            // Only the live Station's Word (or the next one's, between pubs) is worth showing outright.
+            const wordShown = status === "open" || (!openStation && s.id === nextSealed?.id);
             return (
-              <li key={s.id} className="flex items-start gap-3">
+              <li
+                key={s.id}
+                className={`flex items-start gap-3 ${status === "open" ? "-mx-2 border-l-4 border-oxblood bg-gilt-bright/20 px-2 py-3" : ""}`}
+              >
                 <WaxSeal numeral={s.id} state={status === "closed" ? "broken" : status} className="h-12 w-12 shrink-0" />
                 <div className="flex-1">
                   <p className="text-lg leading-tight">
-                    {s.name} <span className="smallcaps text-ink-soft">· {status}</span>
+                    {s.name} <span className={`smallcaps ${STATUS_STYLE[status]}`}>· {status === "open" ? "open now" : status}</span>
                   </p>
-                  <p className="text-sm text-ink-soft">
-                    {s.pub} · Word: <strong>{s.word}</strong>
-                  </p>
+                  <p className="text-sm text-ink-soft">{s.pub}</p>
+                  {wordShown ? (
+                    <p className="mt-1">
+                      <span className="smallcaps text-sm text-ink-soft">The Word</span>{" "}
+                      <strong className="text-xl text-oxblood">{s.word}</strong>
+                    </p>
+                  ) : (
+                    status !== "closed" && (
+                      <details className="text-sm text-ink-soft">
+                        <summary className="smallcaps cursor-pointer">Show the Word</summary>
+                        <strong className="text-ink">{s.word}</strong>
+                      </details>
+                    )
+                  )}
                   <div className="mt-2 flex flex-wrap gap-2">
                     {status === "sealed" && s.id === nextSealed?.id && !openStation && (
                       <ActionButton action={openStationAction.bind(null, s.id)}>Open Station {roman(s.id)}</ActionButton>
@@ -76,12 +115,12 @@ export default async function AbbotPage() {
                     )}
                   </div>
                   {status === "open" && (
-                    <ul className="mt-3 space-y-1 text-base">
+                    <ul className="mt-3 divide-y divide-vellum-deep border-t border-vellum-deep text-base">
                       {standings.map((t) => {
                         const p = progress.get(t.teamId);
                         return (
-                          <li key={t.teamId} className="flex items-center justify-between gap-2">
-                            <span>{t.name}</span>
+                          <li key={t.teamId} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
+                            <span className="min-w-40 flex-1 leading-tight">{t.name}</span>
                             {p ? (
                               <span className="smallcaps text-verdigris">{p.sealed ? "sealed" : "answering"}</span>
                             ) : (
@@ -101,7 +140,7 @@ export default async function AbbotPage() {
         </ul>
       </Section>
 
-      <Section title={`Appeals${disputes.length ? ` (${disputes.length})` : ""}`}>
+      <Section title={`Appeals${disputes.length ? ` (${disputes.length})` : ""}`} tone={disputes.length ? "urgent" : "quiet"}>
         {disputes.length === 0 ? (
           <p className="italic text-ink-soft">No Order has appealed.</p>
         ) : (
@@ -140,7 +179,13 @@ export default async function AbbotPage() {
               <p className="text-sm text-ink-soft">{t.members.join(" · ")}</p>
               <div className="mt-2 flex flex-wrap items-end gap-3">
                 <RenameForm teamId={t.teamId} name={t.name} />
-                <ActionButton action={deleteOrderAction.bind(null, t.teamId)} confirm="Delete this Order and its answers?" quiet>
+                <ActionButton
+                  action={deleteOrderAction.bind(null, t.teamId)}
+                  confirm={`Delete ${t.name} and all its answers?`}
+                  confirmLabel="Yes, delete"
+                  danger
+                  quiet
+                >
                   Delete
                 </ActionButton>
               </div>
@@ -149,7 +194,7 @@ export default async function AbbotPage() {
         </ul>
       </Section>
 
-      <Section title="The Final Judgement">
+      <Section title="The Final Judgement" tone={finalClosed && book.state !== "revealed" ? "urgent" : "quiet"}>
         {book.state === "revealed" ? (
           <p className="italic text-verdigris">Revealed. Every phone now shows the final standings.</p>
         ) : finalClosed ? (
@@ -165,7 +210,7 @@ export default async function AbbotPage() {
         )}
       </Section>
 
-      <Section title="Reset">
+      <Section title="Reset" tone="danger">
         <ResetForm />
       </Section>
     </>

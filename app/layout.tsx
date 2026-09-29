@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { EB_Garamond, UnifrakturMaguntia } from "next/font/google";
+import { EB_Garamond, Grenze_Gotisch } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import { SealDefs } from "@/components/WaxSeal";
 import "./globals.css";
 
-const blackletter = UnifrakturMaguntia({ variable: "--font-blackletter", weight: "400", subsets: ["latin"] });
+// A legible gothic: keeps the monastic blackletter feel without Fraktur's unreadable capitals.
+const blackletter = Grenze_Gotisch({ variable: "--font-blackletter", weight: "variable", subsets: ["latin"] });
 const garamond = EB_Garamond({ variable: "--font-garamond", subsets: ["latin"], style: ["normal", "italic"] });
 
 export const metadata: Metadata = {
