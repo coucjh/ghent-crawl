@@ -43,3 +43,6 @@ next-env.d.ts
 # local embedded database
 /.pglite
 !.env.example
+
+# IDE
+/.idea

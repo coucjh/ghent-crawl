@@ -59,8 +59,7 @@ The Book of Judgement is visible between Stations, sealed once the final Station
 | `app/actions.ts`, `app/abbot/actions.ts` | Server actions. |
 | `components/` | UI. `WaxSeal` / `SealBreak` are the signature pieces. |
 
-## Later phases
+## What's next
 
-- **Picture round**: add an `image` field to questions, put images in `/public`.
-- **Music round**: Abbots play clips over the bar's speaker, phones just collect answers.
-- **Pilgrimages** (photo challenges between pubs): Vercel Blob uploads + an Abbot review screen.
+See [docs/PLAN.md](docs/PLAN.md) for every design decision so far and the phase 2 plan (picture round, the Pilgrimage,
+music questions, photo challenges).
