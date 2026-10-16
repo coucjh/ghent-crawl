@@ -32,6 +32,10 @@ it("marks single and list questions, honours overrides, and wipes players", asyn
   await quiz.setPoints(a.id, 3, 1);
   expect((await quiz.getQuizViews(a.id))[3].points).toBe(1);
 
+  // Retired questions are hidden and can't be answered.
+  expect((await quiz.getQuestions()).some((q) => q.n === 5)).toBe(false);
+  expect((await quiz.submitGuess(a.id, 5, "Someone")).ok).toBe(false);
+
   await quiz.wipePlayers();
   expect(await quiz.getLeaderboard()).toEqual([]);
   expect((await quiz.getQuestions())[0].answer).toBe("James Robbert");

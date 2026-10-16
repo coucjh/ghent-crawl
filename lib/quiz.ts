@@ -8,11 +8,12 @@ import { DEFAULT_QUESTIONS, type QuizView, type Standing } from "./questions";
 
 export type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
-const isQuestion = (n: number) => Number.isInteger(n) && n >= 0 && n < DEFAULT_QUESTIONS.length;
+const isQuestion = (n: number) => Number.isInteger(n) && n >= 0 && n < DEFAULT_QUESTIONS.length && !DEFAULT_QUESTIONS[n].retired;
 
 export async function getQuestions() {
   const rows = await (await getDb()).select().from(questions);
-  return DEFAULT_QUESTIONS.map((d, n) => {
+  return DEFAULT_QUESTIONS.flatMap((d, n) => {
+    if (d.retired) return [];
     const row = rows.find((r) => r.n === n);
     return { n, prompt: row?.prompt ?? d.prompt, answer: row?.answer ?? d.answer ?? "", multi: row?.multi ?? !!d.multi, manual: !!d.manual, options: d.options, tag: d.tag };
   });
@@ -53,9 +54,9 @@ export async function submitGuess(guestId: string, n: number, value: string): Pr
 type Question = Awaited<ReturnType<typeof getQuestions>>[number];
 
 /** The admin's mark if there is one, else marked against the answer; null while it's waiting for a person or an answer. */
-function mark(q: Question | undefined, value: string, override: number | null): number | null {
+function mark(q: Question, value: string, override: number | null): number | null {
   if (override !== null) return override;
-  if (!q?.answer || q.manual) return null;
+  if (!q.answer || q.manual) return null;
   return q.multi ? scoreList(q.answer, value) : isCorrect(q.answer, value) ? 1 : 0;
 }
 
@@ -70,7 +71,11 @@ export async function getMarkedGuesses() {
       .innerJoin(guests, eq(guests.id, guesses.guestId))
       .orderBy(guesses.createdAt),
   ]);
-  return rows.map((r) => ({ ...r, points: mark(qs[r.n], r.value, r.override) }));
+  // Answers to retired questions drop out.
+  return rows.flatMap((r) => {
+    const q = qs.find((q) => q.n === r.n);
+    return q ? [{ ...r, points: mark(q, r.value, r.override) }] : [];
+  });
 }
 
 export async function getLeaderboard(meId?: string): Promise<Standing[]> {
