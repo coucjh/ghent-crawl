@@ -20,7 +20,7 @@ export const DEFAULT_QUESTIONS: {
   tag?: string;
   retired?: boolean;
 }[] = [
-  { stop: 0, prompt: "What are Mark's middle names?", answer: "" },
+  { stop: 0, prompt: "What are Mark's middle names?", answer: "Frank Grosvenor / Frank and Grosvenor" },
   { stop: 0, prompt: "What are Sarah's middle names?", answer: "" },
   { stop: 1, prompt: "Where was their first holiday together?", answer: "" },
   { stop: 1, prompt: "If Mark could have any job outside of the law, what would it be?", answer: "", manual: true },
@@ -35,7 +35,7 @@ export const DEFAULT_QUESTIONS: {
   {
     stop: 3,
     prompt: "What was Mark's top song on Spotify in 2020?",
-    answer: "",
+    answer: "UFOF by Big Thief",
     options: ["UFOF by Big Thief", "All My Friends by LCD Soundsystem", "Money Trees by Kendrick Lamar"],
     tag: "🎵 Music round",
   },
