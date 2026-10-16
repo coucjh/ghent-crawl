@@ -1,33 +1,26 @@
 import type { Metadata, Viewport } from "next";
-import { EB_Garamond, Grenze_Gotisch } from "next/font/google";
+import { Bowlby_One, DM_Sans } from "next/font/google";
 import { Providers } from "@/components/Providers";
-import { SealDefs } from "@/components/WaxSeal";
 import "./globals.css";
 
-// A legible gothic: keeps the monastic blackletter feel without Fraktur's unreadable capitals.
-const blackletter = Grenze_Gotisch({ variable: "--font-blackletter", weight: "variable", subsets: ["latin"] });
-const garamond = EB_Garamond({ variable: "--font-garamond", subsets: ["latin"], style: ["normal", "italic"] });
+const bowlby = Bowlby_One({ variable: "--font-bowlby", weight: "400", subsets: ["latin"] });
+const dm = DM_Sans({ variable: "--font-dm", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "The Ghent Abbey Crawl",
-  description: "Five Stations, one Book of Judgement.",
+  title: "Ghent Crawl",
+  description: "Six stops. One night. Follow the map.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#6b1420",
+  themeColor: "#1a0526",
   viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${blackletter.variable} ${garamond.variable} antialiased`}>
+    <html lang="en" className={`${bowlby.variable} ${dm.variable} antialiased`}>
       <body className="min-h-dvh">
-        <SealDefs />
-        <Providers>
-          <div className="mx-auto max-w-md px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))]">
-            {children}
-          </div>
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

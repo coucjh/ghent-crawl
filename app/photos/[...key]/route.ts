@@ -1,14 +1,11 @@
 import { photoOwner, readPhoto } from "@/lib/photos";
-import { currentPlayer, isAbbot } from "@/lib/session";
+import { isAbbot } from "@/lib/session";
 
-/** Serves a challenge photo — only to the Abbots and to the Order that took it. */
+/** Serves an uploaded photo — admin only. */
 export async function GET(_req: Request, { params }: { params: Promise<{ key: string[] }> }) {
   const key = (await params).key.join("/");
-  const owner = photoOwner(key);
-  if (!owner) return new Response("Not found", { status: 404 });
-
-  const allowed = (await isAbbot()) || (await currentPlayer())?.team.id === owner;
-  if (!allowed) return new Response("These photos are for the Abbots and the Order that took them.", { status: 403 });
+  if (!photoOwner(key)) return new Response("Not found", { status: 404 });
+  if (!(await isAbbot())) return new Response("Admin only.", { status: 403 });
 
   const body = await readPhoto(key);
   if (!body) return new Response("Not found", { status: 404 });

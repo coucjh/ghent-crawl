@@ -1,105 +1,31 @@
 @import "tailwindcss";
 
 @theme {
-  --color-vellum: #e6d5ae;
-  --color-vellum-light: #f1e6c8;
-  --color-vellum-deep: #d6c192;
-  --color-ink: #231710;
-  --color-ink-soft: #5a4633;
-  --color-oxblood: #6b1420;
-  --color-oxblood-deep: #470b14;
-  --color-gilt: #b08a3e;
-  --color-gilt-bright: #d4af5a;
-  --color-verdigris: #2f5a46;
+  --color-night: #1a0526;
+  --color-ink: #120018;
+  --color-hot: #ff2e88;
+  --color-zest: #ffe14d;
+  --color-zap: #00e0ff;
+  --color-lime: #b6ff3b;
 
-  --font-display: var(--font-blackletter), "Old English Text MT", serif;
-  --font-serif: var(--font-garamond), Garamond, "Times New Roman", serif;
+  --font-display: var(--font-bowlby), "Arial Black", sans-serif;
+  --font-sans: var(--font-dm), system-ui, sans-serif;
 }
 
 html {
-  background: var(--color-vellum);
-  color-scheme: light;
+  background: var(--color-night);
+  color-scheme: dark;
 }
 
 body {
-  font-family: var(--font-serif);
-  color: var(--color-ink);
-  /* Vellum: a soft vignette plus fine paper grain. */
+  font-family: var(--font-sans);
+  color: white;
   background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3 0 0 0 0 .2 0 0 0 0 .1 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(ellipse at 50% 30%, var(--color-vellum-light) 0%, var(--color-vellum) 55%, var(--color-vellum-deep) 100%);
+    radial-gradient(circle at 15% 10%, color-mix(in srgb, var(--color-hot) 45%, transparent), transparent 45%),
+    radial-gradient(circle at 90% 85%, color-mix(in srgb, var(--color-zap) 35%, transparent), transparent 50%),
+    var(--color-night);
   background-attachment: fixed;
-  font-size: 1.125rem;
-  line-height: 1.5;
-}
-
-/* Headings in the gothic face read best a little heavy. */
-.font-display {
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-.smallcaps {
-  font-variant-caps: all-small-caps;
-  letter-spacing: 0.08em;
-}
-
-/* The beer-label frame: a double rule with notched corners. */
-.label-frame {
-  position: relative;
-  background: color-mix(in srgb, var(--color-vellum-light) 70%, transparent);
-  border: 1px solid var(--color-gilt);
-  /* Second, inner rule (an outline would be cut off by the notched clip-path). */
-  box-shadow:
-    inset 0 0 0 4px color-mix(in srgb, var(--color-vellum-light) 70%, transparent),
-    inset 0 0 0 5px var(--color-gilt);
-  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
-  margin: 5px;
-}
-
-/* Sections that need the Abbot now. */
-.label-frame-urgent {
-  background: color-mix(in srgb, var(--color-gilt-bright) 22%, var(--color-vellum-light));
-  border-color: var(--color-oxblood);
-  box-shadow:
-    inset 0 0 0 4px color-mix(in srgb, var(--color-gilt-bright) 22%, var(--color-vellum-light)),
-    inset 0 0 0 5px var(--color-oxblood);
-}
-
-.rule {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  color: var(--color-gilt);
-}
-.rule::before,
-.rule::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(to var(--dir, right), transparent, var(--color-gilt));
-}
-.rule::after {
-  --dir: left;
-}
-
-.field {
-  width: 100%;
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid var(--color-ink-soft);
-  padding: 0.35rem 0.1rem;
-  font: inherit;
-  color: var(--color-ink);
-}
-.field::placeholder {
-  color: color-mix(in srgb, var(--color-ink-soft) 60%, transparent);
-  font-style: italic;
-}
-.field:focus {
-  outline: none;
-  border-bottom-color: var(--color-oxblood);
-  box-shadow: 0 1px 0 var(--color-oxblood);
+  overflow-x: hidden;
 }
 
 .btn {
@@ -107,87 +33,88 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.6rem 1.25rem;
-  background: var(--color-oxblood);
-  color: var(--color-vellum-light);
-  border: 1px solid var(--color-oxblood-deep);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-gilt-bright) 45%, transparent);
-  font-variant-caps: all-small-caps;
-  letter-spacing: 0.1em;
-  font-size: 1.15rem;
-  transition: background-color 150ms, transform 100ms;
-}
-.btn:hover {
-  background: var(--color-oxblood-deep);
+  border: 4px solid var(--color-ink);
+  border-radius: 999px;
+  background: var(--color-hot);
+  color: white;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  padding: 0.75rem 1.5rem;
+  box-shadow: 5px 5px 0 var(--color-ink);
+  transition: transform 0.1s, box-shadow 0.1s;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 .btn:active {
-  transform: translateY(1px);
+  transform: translate(4px, 4px);
+  box-shadow: 1px 1px 0 var(--color-ink);
 }
 .btn:disabled {
-  opacity: 0.5;
-  pointer-events: none;
+  opacity: 0.6;
 }
-/* Irreversible actions: cold ink, never the warm oxblood of routine ceremony. */
-.btn-danger {
-  background: var(--color-ink);
-  border-color: var(--color-ink);
-  color: var(--color-vellum-light);
-  box-shadow: none;
-}
-.btn-danger:hover {
-  background: #000;
-}
-.btn-quiet {
-  background: transparent;
-  color: var(--color-oxblood);
-  border-color: var(--color-oxblood);
-  box-shadow: none;
-}
-.btn-quiet:hover {
-  background: color-mix(in srgb, var(--color-oxblood) 8%, transparent);
+.btn-ghost {
+  background: white;
+  color: var(--color-ink);
 }
 
-:focus-visible {
-  outline: 2px solid var(--color-oxblood);
-  outline-offset: 3px;
+.field {
+  margin-top: 0.25rem;
+  display: block;
+  width: 100%;
+  border: 3px solid var(--color-ink);
+  border-radius: 1rem;
+  padding: 0.6rem 0.9rem;
+  color: var(--color-ink);
+  font-size: 1.25rem;
 }
 
-/* Illuminated initial: the first letter of each question. */
-.initial {
-  float: left;
+/* Map pins (Leaflet divIcons). */
+.pin {
   display: grid;
   place-items: center;
-  width: 2.6rem;
-  height: 2.6rem;
-  margin: 0.2rem 0.6rem 0 0;
-  background: var(--color-oxblood);
-  color: var(--color-gilt-bright);
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--color-ink);
+  border-radius: 50%;
+  background: white;
+  color: var(--color-ink);
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 2rem;
+  font-size: 16px;
+  box-shadow: 3px 3px 0 var(--color-ink);
+  transition: background 0.3s, transform 0.3s;
+}
+.pin-done {
+  background: var(--color-lime);
+}
+.pin-active {
+  background: var(--color-hot);
+  color: white;
+  transform: scale(1.35);
+  animation: pin-pulse 1.2s ease-in-out infinite;
+}
+@keyframes pin-pulse {
+  0%, 100% { box-shadow: 3px 3px 0 var(--color-ink), 0 0 0 0 color-mix(in srgb, var(--color-hot) 70%, transparent); }
+  50% { box-shadow: 3px 3px 0 var(--color-ink), 0 0 0 14px transparent; }
+}
+.walker {
+  font-size: 30px;
   line-height: 1;
-  border: 1px solid var(--color-gilt);
-  outline: 1px solid var(--color-oxblood);
-  outline-offset: 2px;
+  filter: drop-shadow(2px 2px 0 var(--color-ink));
 }
 
-/* Bubbles rising through the Last Orders pint. */
-@keyframes beer-bubble {
-  from {
-    transform: translateY(0);
-    opacity: 0.8;
-  }
-  to {
-    transform: translateY(-40px);
-    opacity: 0;
-  }
+/* Route segments draw themselves: each path has pathLength=1, so a dash of 1 is the whole line. */
+.route {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
 }
-.beer-bubble {
-  animation: beer-bubble 2.1s ease-in infinite;
+.route-draw {
+  animation: draw 1.4s ease-in-out both;
 }
+@keyframes draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .beer-bubble {
-    animation: none;
-    opacity: 0;
-  }
+  .pin-active, .route-draw { animation: none; }
 }

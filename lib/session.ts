@@ -1,9 +1,7 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import { getPlayer } from "./game";
 
-const PLAYER_COOKIE = "abbey_player";
 const ABBOT_COOKIE = "abbey_abbot";
 const MAX_AGE = 60 * 60 * 24 * 7;
 
@@ -29,20 +27,6 @@ function unsign(signed: string | undefined): string | null {
 
 const cookieOptions = { httpOnly: true, sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", maxAge: MAX_AGE, path: "/" };
 
-export async function setPlayerSession(playerId: string) {
-  (await cookies()).set(PLAYER_COOKIE, sign(playerId), cookieOptions);
-}
-
-export async function clearPlayerSession() {
-  (await cookies()).delete(PLAYER_COOKIE);
-}
-
-/** The signed-in player with their Order, or null. */
-export async function currentPlayer() {
-  const id = unsign((await cookies()).get(PLAYER_COOKIE)?.value);
-  return id ? getPlayer(id) : null;
-}
-
 export async function abbotLogin(attempt: string): Promise<boolean> {
   const expected = Buffer.from(secret("ABBOT_SECRET", "abbot"));
   const given = Buffer.from(attempt);
@@ -55,5 +39,3 @@ export async function isAbbot() {
   return unsign((await cookies()).get(ABBOT_COOKIE)?.value) === "abbot";
 }
 
-/** The Word is shown on screen outside production so the flow can be tested without a barkeep. */
-export const devMode = !isProd;

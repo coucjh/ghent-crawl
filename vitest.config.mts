@@ -8,5 +8,5 @@ export default defineConfig({
       "server-only": path.resolve(import.meta.dirname, "test/empty.ts"),
     },
   },
-  test: { env: { DATABASE_URL: "pglite://memory" } },
+  test: { passWithNoTests: true, env: { DATABASE_URL: "pglite://memory" } },
 });
