@@ -37,6 +37,7 @@ export default async function AdminPage() {
               <p className="font-bold">
                 Q{q.n + 1}. {q.prompt}
               </p>
+              {q.options && <p className="text-sm">Options: {q.options.join(" · ")}</p>}
               <p className="text-sm">
                 Answer: {q.answer || <em>not set yet</em>}
                 {q.manual && <strong className="text-hot"> · mark these by hand</strong>}
@@ -61,9 +62,9 @@ export default async function AdminPage() {
 
       <section className={CARD}>
         <h2 className="mb-1 font-display text-3xl">Questions ✍️</h2>
-        <p className="mb-4 text-sm">Two per pub. Changes show on phones within 15 seconds.</p>
+        <p className="mb-4 text-sm">In pub order. For multiple choice, copy the right option exactly. Changes show on phones within 15 seconds.</p>
         <div className="space-y-4">
-          {questions.map((q) => (
+          {questions.toSorted((a, b) => stopOf(a.n) - stopOf(b.n) || a.n - b.n).map((q) => (
             <QuestionForm key={q.n} n={q.n} pub={STOPS[stopOf(q.n)].name} prompt={q.prompt} answer={q.answer} multi={q.multi} />
           ))}
         </div>

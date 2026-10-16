@@ -39,6 +39,7 @@ export function QuizBlock({ quiz }: { quiz: QuizView }) {
   const v = verdict(quiz.points, quiz.multi);
   return (
     <div className="mt-3 rounded-2xl border-[3px] border-ink bg-white p-3">
+      {quiz.tag && <p className="text-sm font-bold uppercase tracking-wide text-hot">{quiz.tag}</p>}
       <p className="font-display text-lg leading-snug">{quiz.prompt}</p>
       {quiz.multi && <p className="text-sm font-semibold text-hot">A point for each one. Separate them with commas.</p>}
       {quiz.guess ? (
@@ -51,6 +52,15 @@ export function QuizBlock({ quiz }: { quiz: QuizView }) {
           <span className="font-semibold">“{quiz.guess}”</span>
           <span className="font-display">{v.text}</span>
         </motion.div>
+      ) : quiz.options ? (
+        // The tapped option is the answer: its name/value is submitted with the form.
+        <form action={action} className="mt-2 grid gap-2">
+          {quiz.options.map((o) => (
+            <button key={o} name="guess" value={o} className="btn btn-ghost justify-start px-4 py-2 text-left text-base" disabled={pending}>
+              {o}
+            </button>
+          ))}
+        </form>
       ) : (
         <form action={action} className="mt-2 flex gap-2">
           <input name="guess" required maxLength={300} placeholder="Your answer" autoComplete="off" className="field mt-0 min-w-0 flex-1 py-2 text-lg" />

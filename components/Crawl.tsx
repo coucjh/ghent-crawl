@@ -34,11 +34,13 @@ export function Crawl({ guest, quizzes, standings }: { guest: string | null; qui
   const [dir, setDir] = useState(1);
   const [flash, setFlash] = useState<string | null>(null);
 
+  // Only once the crawl is open: before that, `index` is a placeholder and would overwrite the saved stop.
   useEffect(() => {
+    if (!licked) return;
     try {
       localStorage.setItem(KEY, String(index));
     } catch {}
-  }, [index]);
+  }, [licked, index]);
 
   // Keeps the leaderboard and "not marked yet" answers fresh.
   useEffect(() => {

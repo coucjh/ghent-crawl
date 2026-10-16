@@ -14,7 +14,7 @@ export async function getQuestions() {
   const rows = await (await getDb()).select().from(questions);
   return DEFAULT_QUESTIONS.map((d, n) => {
     const row = rows.find((r) => r.n === n);
-    return { n, prompt: row?.prompt ?? d.prompt, answer: row?.answer ?? d.answer ?? "", multi: row?.multi ?? !!d.multi, manual: !!d.manual };
+    return { n, prompt: row?.prompt ?? d.prompt, answer: row?.answer ?? d.answer ?? "", multi: row?.multi ?? !!d.multi, manual: !!d.manual, options: d.options, tag: d.tag };
   });
 }
 
@@ -90,7 +90,7 @@ export async function getQuizViews(guestId?: string): Promise<QuizView[]> {
   const [qs, marked] = await Promise.all([getQuestions(), guestId ? getMarkedGuesses() : Promise.resolve([])]);
   return qs.map((q) => {
     const g = marked.find((m) => m.guestId === guestId && m.n === q.n);
-    return { n: q.n, prompt: q.prompt, multi: q.multi, guess: g?.value, points: g?.points };
+    return { n: q.n, prompt: q.prompt, multi: q.multi, options: q.options, tag: q.tag, guess: g?.value, points: g?.points };
   });
 }
 
