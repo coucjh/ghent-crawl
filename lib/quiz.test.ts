@@ -1,42 +1,45 @@
 import { expect, it } from "vitest";
+import { QUESTIONS } from "./questions";
 import * as quiz from "./quiz";
 
-it("marks single and list questions, honours overrides, and wipes players", async () => {
+const n = (prompt: string) => QUESTIONS.findIndex((q) => q.prompt.includes(prompt));
+
+it("marks guesses against the fixed answers and wipes players", async () => {
   const a = await quiz.createGuest("  Dave ");
   const b = await quiz.createGuest("Sam");
   if (!a.ok || !b.ok) throw new Error("join failed");
 
-  expect((await quiz.submitGuess(a.id, 1, "James Robert")).ok).toBe(true);
-  expect(await quiz.submitGuess(a.id, 1, "again")).toEqual({ ok: false, error: "You've already locked in an answer." });
-  await quiz.submitGuess(a.id, 7, "Oasis, Blur, The Killers");
-  await quiz.submitGuess(b.id, 1, "Peter");
+  const middle = n("Mark's middle names");
+  const song = n("Spotify");
+  expect((await quiz.submitGuess(a.id, middle, "frank & grosvenor")).ok).toBe(true);
+  expect(await quiz.submitGuess(a.id, middle, "again")).toEqual({ ok: false, error: "You've already locked in an answer." });
+  await quiz.submitGuess(a.id, song, "UFOF by Big Thief");
+  await quiz.submitGuess(b.id, middle, "Peter");
 
-  // Nothing marked until the answers are in.
-  expect((await quiz.getQuizViews(a.id)).find((q) => q.n === 1)).toMatchObject({ guess: "James Robert", points: null });
-
-  await quiz.saveQuestion(1, "What are Sarah's middle names?", "James Robbert", false);
-  await quiz.saveQuestion(7, "Name Mark's top 3 musical artists.", "Oasis, Killers, Coldplay", true);
   expect(await quiz.getLeaderboard(a.id)).toMatchObject([
-    { name: "Dave", score: 3, me: true },
+    { name: "Dave", score: 2, me: true },
     { name: "Sam", score: 0, me: false },
   ]);
 
-  await quiz.setPoints(b.id, 1, 1);
-  expect((await quiz.getLeaderboard()).find((s) => s.name === "Sam")?.score).toBe(1);
-  expect((await quiz.getQuizViews(b.id)).find((q) => q.n === 1)?.points).toBe(1);
-
-  // Open-ended questions wait for the admin even when an answer is set.
-  await quiz.submitGuess(a.id, 3, "Astronaut");
-  await quiz.saveQuestion(3, "Dream job?", "Football pundit", false);
-  expect((await quiz.getQuizViews(a.id))[3].points).toBeNull();
-  await quiz.setPoints(a.id, 3, 1);
-  expect((await quiz.getQuizViews(a.id))[3].points).toBe(1);
+  // No answer yet: waits as "not marked yet" and scores nothing.
+  const sarah = n("Sarah's middle names");
+  if (!QUESTIONS[sarah].answer) {
+    await quiz.submitGuess(b.id, sarah, "Jane");
+    expect((await quiz.getQuizViews(b.id)).find((q) => q.n === sarah)?.points).toBeNull();
+  }
 
   // Retired questions are hidden and can't be answered.
-  expect((await quiz.getQuestions()).some((q) => q.n === 5)).toBe(false);
-  expect((await quiz.submitGuess(a.id, 5, "Someone")).ok).toBe(false);
+  const retired = n("first kiss");
+  expect((await quiz.getQuizViews()).some((q) => q.n === retired)).toBe(false);
+  expect((await quiz.submitGuess(a.id, retired, "Someone")).ok).toBe(false);
+
+  await quiz.deleteGuest(b.id);
+  expect((await quiz.getLeaderboard()).map((s) => s.name)).toEqual(["Dave"]);
 
   await quiz.wipePlayers();
   expect(await quiz.getLeaderboard()).toEqual([]);
-  expect((await quiz.getQuestions()).find((q) => q.n === 1)?.answer).toBe("James Robbert");
+});
+
+it("every multiple-choice answer is one of its options", () => {
+  for (const q of QUESTIONS) if (q.options && q.answer) expect(q.options).toContain(q.answer);
 });

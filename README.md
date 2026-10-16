@@ -19,15 +19,16 @@ npm run dev          # http://localhost:3000
 
 ## The quiz
 
-Players type a first name once, then answer two questions at each pub (12 in all; defaults in
-[`lib/questions.ts`](lib/questions.ts)). At `/abbot` the admin rewords questions, enters the correct answers, overrules
-marks and sees the leaderboard. Answers are marked automatically, ignoring case, accents and small typos:
+Players type a first name once, then answer two questions at each pub. Questions and answers live in
+[`lib/questions.ts`](lib/questions.ts) and every answer is marked automatically, ignoring case, accents and small typos:
 
 - `Alan Shearer / Shearer`: "/" separates accepted alternatives.
-- List questions (tick "A point per item"): items separated by ",", a point for each one named. Only a player's first
-  as many guesses as there are items count.
+- `multi`: items separated by ",", a point for each one named. Only a player's first as many guesses as there are
+  items count.
+- `options`: multiple choice; the answer must be one of the options, copied exactly.
 
-*Wipe players* deletes every name and answer. Do it after the night.
+`/abbot` lists players with their scores and can delete one. *Wipe players* deletes every name and answer. Do it after the
+night.
 
 ## Deploy to Vercel
 

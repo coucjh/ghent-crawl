@@ -70,7 +70,7 @@ export const guests = pgTable("guests", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-/** Admin edits to question n; a missing row means the default from lib/questions.ts with no answer yet. */
+/** Unused: questions and answers now live in lib/questions.ts. Kept so no migration drops it. */
 export const questions = pgTable("questions", {
   n: integer("n").primaryKey(),
   prompt: text("prompt").notNull(),
@@ -88,7 +88,7 @@ export const guesses = pgTable(
       .references(() => guests.id, { onDelete: "cascade" }),
     n: integer("n").notNull(),
     value: text("value").notNull(),
-    /** Admin override; null means "mark automatically against the answer". */
+    /** Unused (was an admin override); guesses are marked against lib/questions.ts. */
     points: integer("points"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
