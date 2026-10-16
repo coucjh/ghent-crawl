@@ -37,7 +37,10 @@ export default async function AdminPage() {
               <p className="font-bold">
                 Q{q.n + 1}. {q.prompt}
               </p>
-              <p className="text-sm">Answer: {q.answer || <em>not set yet</em>}</p>
+              <p className="text-sm">
+                Answer: {q.answer || <em>not set yet</em>}
+                {q.manual && <strong className="text-hot"> · mark these by hand</strong>}
+              </p>
               <ul className="mt-1 divide-y divide-ink/15">
                 {these.map((g) => (
                   <li key={g.guestId} className="flex items-center gap-2 py-1.5">

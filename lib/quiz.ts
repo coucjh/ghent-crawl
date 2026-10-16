@@ -14,7 +14,7 @@ export async function getQuestions() {
   const rows = await (await getDb()).select().from(questions);
   return DEFAULT_QUESTIONS.map((d, n) => {
     const row = rows.find((r) => r.n === n);
-    return { n, prompt: row?.prompt ?? d.prompt, answer: row?.answer ?? "", multi: row?.multi ?? !!d.multi };
+    return { n, prompt: row?.prompt ?? d.prompt, answer: row?.answer ?? d.answer ?? "", multi: row?.multi ?? !!d.multi, manual: !!d.manual };
   });
 }
 
@@ -52,10 +52,10 @@ export async function submitGuess(guestId: string, n: number, value: string): Pr
 
 type Question = Awaited<ReturnType<typeof getQuestions>>[number];
 
-/** The admin's override if there is one, else marked against the answer; null while there's no answer to mark against. */
+/** The admin's mark if there is one, else marked against the answer; null while it's waiting for a person or an answer. */
 function mark(q: Question | undefined, value: string, override: number | null): number | null {
   if (override !== null) return override;
-  if (!q?.answer) return null;
+  if (!q?.answer || q.manual) return null;
   return q.multi ? scoreList(q.answer, value) : isCorrect(q.answer, value) ? 1 : 0;
 }
 

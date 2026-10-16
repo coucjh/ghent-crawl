@@ -25,6 +25,13 @@ it("marks single and list questions, honours overrides, and wipes players", asyn
   expect((await quiz.getLeaderboard()).find((s) => s.name === "Sam")?.score).toBe(1);
   expect((await quiz.getQuizViews(b.id))[0].points).toBe(1);
 
+  // Open-ended questions wait for the admin even when an answer is set.
+  await quiz.submitGuess(a.id, 3, "Astronaut");
+  await quiz.saveQuestion(3, "Dream job?", "Football pundit", false);
+  expect((await quiz.getQuizViews(a.id))[3].points).toBeNull();
+  await quiz.setPoints(a.id, 3, 1);
+  expect((await quiz.getQuizViews(a.id))[3].points).toBe(1);
+
   await quiz.wipePlayers();
   expect(await quiz.getLeaderboard()).toEqual([]);
   expect((await quiz.getQuestions())[0].answer).toBe("James Robbert");

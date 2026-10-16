@@ -59,7 +59,7 @@ export function Splash({ onLick }: { onLick: () => void }) {
           animate={{ scale: [1, 1.08, 1] }}
           transition={{ repeat: Infinity, duration: 0.9 }}
         >
-          Lick 👅
+          Lick it 👅
         </motion.button>
         <motion.button
           className={`btn ${dodges >= 3 ? "" : "btn-ghost"} text-xl`}
@@ -69,7 +69,7 @@ export function Splash({ onLick }: { onLick: () => void }) {
           onPointerEnter={(e) => e.pointerType === "mouse" && dodge(e)}
           onClick={() => dodges >= 3 && onLick()}
         >
-          {dodges >= 3 ? "Fine. Lick 👅" : ["I abstain", "Nope 😬", "Nice try", "Still no"][dodges]}
+          {dodges >= 3 ? "Fine. Lick it 👅" : ["I abstain", "Nope 😬", "Nice try", "Still no"][dodges]}
         </motion.button>
       </motion.div>
     </main>
