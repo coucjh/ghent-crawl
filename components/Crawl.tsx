@@ -2,9 +2,12 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { stopOf, type QuizView, type Standing } from "@/lib/questions";
 import { directionsUrl, STOPS } from "@/lib/stops";
 import { Finale } from "./Finale";
+import { Leaderboard, NameGate, QuizBlock } from "./Quiz";
 import { eruptSharks } from "./sharks";
 import { Splash } from "./Splash";
 
@@ -23,8 +26,10 @@ function load() {
   }
 }
 
-export function Crawl() {
+export function Crawl({ guest, quizzes, standings }: { guest: string | null; quizzes: QuizView[]; standings: Standing[] }) {
+  const router = useRouter();
   const [licked, setLicked] = useState(false);
+  const [board, setBoard] = useState(false);
   const [index, setIndex] = useState(0);
   const [dir, setDir] = useState(1);
   const [flash, setFlash] = useState<string | null>(null);
@@ -34,6 +39,13 @@ export function Crawl() {
       localStorage.setItem(KEY, String(index));
     } catch {}
   }, [index]);
+
+  // Keeps the leaderboard and "not marked yet" answers fresh.
+  useEffect(() => {
+    if (!licked || !guest) return;
+    const id = setInterval(() => document.visibilityState === "visible" && router.refresh(), 15000);
+    return () => clearInterval(id);
+  }, [licked, guest, router]);
 
   const go = (to: number) => {
     setDir(to > index ? 1 : -1);
@@ -55,7 +67,8 @@ export function Crawl() {
         }}
       />
     );
-  if (index === DONE) return <Finale onRestart={() => setIndex(0)} />;
+  if (!guest) return <NameGate />;
+  if (index === DONE) return <Finale standings={standings} onRestart={() => setIndex(0)} />;
 
   const stop = STOPS[index];
   const last = index === DONE - 1;
@@ -83,10 +96,17 @@ export function Crawl() {
               {n < index ? "✓" : s.emoji}
             </motion.span>
           ))}
+          <button
+            className="pointer-events-auto ml-1 grid h-9 w-9 place-items-center rounded-full border-[3px] border-ink bg-zest text-lg"
+            onClick={() => setBoard(true)}
+            aria-label="Leaderboard"
+          >
+            🏆
+          </button>
         </div>
       </div>
 
-      <div className="relative shrink-0 overflow-hidden bg-zest px-4 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-ink">
+      <div className="relative max-h-[65dvh] shrink-0 overflow-x-hidden overflow-y-auto bg-zest px-4 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-ink">
         <AnimatePresence mode="popLayout" custom={dir} initial={false}>
           <motion.section
             key={index}
@@ -126,6 +146,11 @@ export function Crawl() {
             )}
             <p className="mt-3 text-base">📍 {stop.address}</p>
             <p className="mt-1 text-base font-semibold">💡 {stop.tip}</p>
+            {quizzes
+              .filter((q) => stopOf(q.n) === index)
+              .map((q) => (
+                <QuizBlock key={q.n} quiz={q} />
+              ))}
           </motion.section>
         </AnimatePresence>
 
@@ -147,6 +172,35 @@ export function Crawl() {
           </motion.button>
         </div>
       </div>
+
+      <AnimatePresence>
+        {board && (
+          <motion.div
+            className="fixed inset-0 z-[1500] flex items-end bg-ink/60"
+            onClick={() => setBoard(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="max-h-[80dvh] w-full overflow-y-auto rounded-t-3xl border-t-4 border-ink bg-zap px-4 pt-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+              onClick={(e) => e.stopPropagation()}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            >
+              <div className="mb-4 flex items-center justify-between text-ink">
+                <h2 className="font-display text-3xl">Leaderboard 🏆</h2>
+                <button className="btn btn-ghost px-4 py-1" onClick={() => setBoard(false)} aria-label="Close">
+                  ✕
+                </button>
+              </div>
+              <Leaderboard standings={standings} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {flash && (

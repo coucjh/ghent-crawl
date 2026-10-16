@@ -3,11 +3,13 @@
 import confetti from "canvas-confetti";
 import { motion } from "motion/react";
 import { useEffect } from "react";
+import type { Standing } from "@/lib/questions";
+import { Leaderboard } from "./Quiz";
 import { eruptSharks } from "./sharks";
 
 const RAIN = ["🍑", "🦈", "🍟", "🍺", "🦈", "🍟", "👅", "🍑", "🦈", "🍟", "🍑", "🦈"];
 
-export function Finale({ onRestart }: { onRestart: () => void }) {
+export function Finale({ standings, onRestart }: { standings: Standing[]; onRestart: () => void }) {
   useEffect(() => {
     const end = Date.now() + 3000;
     const colors = ["#ff2e88", "#ffe14d", "#00e0ff", "#b6ff3b"];
@@ -21,7 +23,7 @@ export function Finale({ onRestart }: { onRestart: () => void }) {
   }, []);
 
   return (
-    <main className="relative flex min-h-dvh flex-col items-center justify-center gap-8 overflow-hidden px-4 text-center">
+    <main className="relative flex min-h-dvh flex-col items-center justify-center gap-8 overflow-x-hidden px-4 py-12 text-center">
       {RAIN.map((e, i) => (
         <motion.span
           key={i}
@@ -51,6 +53,9 @@ export function Finale({ onRestart }: { onRestart: () => void }) {
       >
         enjoy your chips 🍟
       </motion.p>
+      <motion.div className="relative w-full max-w-sm" initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.4 }}>
+        <Leaderboard standings={standings} />
+      </motion.div>
       <motion.button
         className="btn btn-ghost relative"
         onClick={onRestart}

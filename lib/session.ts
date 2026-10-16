@@ -1,6 +1,7 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { getGuest } from "./quiz";
 
 const ABBOT_COOKIE = "abbey_abbot";
 const MAX_AGE = 60 * 60 * 24 * 7;
@@ -39,3 +40,15 @@ export async function isAbbot() {
   return unsign((await cookies()).get(ABBOT_COOKIE)?.value) === "abbot";
 }
 
+
+const GUEST_COOKIE = "crawl_guest";
+
+export async function setGuestSession(guestId: string) {
+  (await cookies()).set(GUEST_COOKIE, sign(guestId), cookieOptions);
+}
+
+/** The signed-in player, or null. */
+export async function currentGuest() {
+  const id = unsign((await cookies()).get(GUEST_COOKIE)?.value);
+  return id ? getGuest(id) : null;
+}

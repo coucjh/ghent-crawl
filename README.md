@@ -14,10 +14,22 @@ npm install
 npm run dev          # http://localhost:3000
 ```
 
-- Admin: `/abbot` (local password `abbot`). Currently a placeholder for a future Mr & Mrs round.
+- Admin: `/abbot` (local password `abbot`).
 - Reset your own progress: *Start again* on the finale, or clear site data.
+
+## The quiz
+
+Players type a first name once, then answer two questions at each pub (12 in all; defaults in
+[`lib/questions.ts`](lib/questions.ts)). At `/abbot` the admin rewords questions, enters the correct answers, overrules
+marks and sees the leaderboard. Answers are marked automatically, ignoring case, accents and small typos:
+
+- `Alan Shearer / Shearer`: "/" separates accepted alternatives.
+- List questions (tick "A point per item"): items separated by ",", a point for each one named. Only a player's first
+  as many guesses as there are items count.
+
+*Wipe players* deletes every name and answer. Do it after the night.
 
 ## Deploy to Vercel
 
 Set `ABBOT_SECRET` and `SESSION_SECRET` (`openssl rand -base64 32`). The Neon database and Blob store from the old
-quiz are still wired up (`lib/db`, `lib/photos.ts`) for the Mr & Mrs round, but the crawl itself needs neither.
+quiz are still wired up; the quiz needs the database (`DATABASE_URL`), and `npm run build` migrates it.

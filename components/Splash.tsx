@@ -3,12 +3,12 @@
 import { motion } from "motion/react";
 import { useState } from "react";
 
-const LINES = [["Pssst,", "Marko", "👅🍑"], ["come", "lick", "Lindsay's", "arsehole...."]];
+const LINES = [["Hey,", "Marko", "👅🍑"], ["come", "lick", "Lindsay's", "arsehole...."]];
 
 export function Splash({ onLick }: { onLick: () => void }) {
   const [dodges, setDodges] = useState(0);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-  // "Don't lick" runs away three times, then gives up and becomes another LICK.
+  // "I abstain" runs away three times, then gives up and becomes another LICK.
   const dodge = (e: React.PointerEvent) => {
     if (dodges >= 3) return;
     e.preventDefault();
@@ -69,7 +69,7 @@ export function Splash({ onLick }: { onLick: () => void }) {
           onPointerEnter={(e) => e.pointerType === "mouse" && dodge(e)}
           onClick={() => dodges >= 3 && onLick()}
         >
-          {dodges >= 3 ? "Fine. Lick 👅" : ["Don't lick", "Nope 😬", "Nice try", "Still no"][dodges]}
+          {dodges >= 3 ? "Fine. Lick 👅" : ["I abstain", "Nope 😬", "Nice try", "Still no"][dodges]}
         </motion.button>
       </motion.div>
     </main>

@@ -60,3 +60,37 @@ export const game = pgTable("game", {
   id: integer("id").primaryKey(),
   revealedAt: timestamp("revealed_at"),
 });
+
+// --- The crawl quiz. The tables above belong to the retired team quiz and are unused. ---
+
+/** One person playing, known by first name only. */
+export const guests = pgTable("guests", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/** Admin edits to question n; a missing row means the default from lib/questions.ts with no answer yet. */
+export const questions = pgTable("questions", {
+  n: integer("n").primaryKey(),
+  prompt: text("prompt").notNull(),
+  /** The correct answer. "/" separates accepted alternatives; in a list question "," separates the items. */
+  answer: text("answer"),
+  /** A list question: a point per item named. */
+  multi: boolean("multi").notNull().default(false),
+});
+
+export const guesses = pgTable(
+  "guesses",
+  {
+    guestId: text("guest_id")
+      .notNull()
+      .references(() => guests.id, { onDelete: "cascade" }),
+    n: integer("n").notNull(),
+    value: text("value").notNull(),
+    /** Admin override; null means "mark automatically against the answer". */
+    points: integer("points"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.guestId, t.n] })],
+);
