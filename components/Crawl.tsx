@@ -62,8 +62,14 @@ export function Crawl({ guest, quizzes, standings }: { guest: string | null; qui
     return (
       <Splash
         onLick={() => {
-          setIndex(load());
+          const at = load();
+          setIndex(at);
           setLicked(true);
+          // New players see it on the name screen instead.
+          if (guest && at < DONE) {
+            setFlash("IT'S CLEAN!! ✨");
+            setTimeout(() => setFlash(null), 1600);
+          }
         }}
       />
     );

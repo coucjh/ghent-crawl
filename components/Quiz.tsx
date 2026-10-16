@@ -16,8 +16,8 @@ export function NameGate() {
         animate={{ scale: 1, rotate: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 260, damping: 14 }}
       >
-        <h1 className="font-display text-4xl leading-tight">Who&apos;s licking? 👅</h1>
-        <p className="text-lg font-semibold">Two questions at every pub. Most points wins.</p>
+        <h1 className="font-display text-5xl leading-tight">It&apos;s clean!! ✨</h1>
+        <p className="text-lg font-semibold">Now, who are you? Two questions at every pub. Most points wins.</p>
         <input name="name" required maxLength={24} placeholder="Your first name" autoComplete="given-name" className="field" />
         {state.error && <p className="font-bold text-hot">{state.error}</p>}
         <button className="btn w-full" disabled={pending}>

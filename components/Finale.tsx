@@ -53,6 +53,14 @@ export function Finale({ standings, onRestart }: { standings: Standing[]; onRest
       >
         enjoy your chips 🍟
       </motion.p>
+      <motion.p
+        className="font-display text-4xl text-zap"
+        initial={{ opacity: 0, scale: 3, rotate: 10 }}
+        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+        transition={{ delay: 1.2, type: "spring", stiffness: 200, damping: 12 }}
+      >
+        It&apos;s clean! ✨
+      </motion.p>
       <motion.div className="relative w-full max-w-sm" initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.4 }}>
         <Leaderboard standings={standings} />
       </motion.div>

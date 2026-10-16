@@ -3,12 +3,12 @@
 import { motion } from "motion/react";
 import { useState } from "react";
 
-const LINES = [["Hey,", "Marko", "👅🍑"], ["come", "lick", "Lindsay's", "arsehole...."]];
+const LINES = [["Mark,", "come", "and", "put", "your", "tongue", "up"], ["Lindsay's", "arsehole", "👅🍑"]];
 
 export function Splash({ onLick }: { onLick: () => void }) {
   const [dodges, setDodges] = useState(0);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-  // "I abstain" runs away three times, then gives up and becomes another LICK.
+  // "I abstain" runs away three times, then gives up and becomes another "Tongue up".
   const dodge = (e: React.PointerEvent) => {
     if (dodges >= 3) return;
     e.preventDefault();
@@ -19,13 +19,13 @@ export function Splash({ onLick }: { onLick: () => void }) {
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-12 overflow-hidden px-4 text-center">
-      <h1 className="font-display text-[clamp(2.75rem,13vw,6rem)] leading-[1.05]">
+      <h1 className="font-display text-[clamp(2.25rem,10vw,5rem)] leading-[1.05]">
         {LINES.map((line, l) => (
           <span key={l} className="block">
             {line.map((word) => (
               <motion.span
                 key={word}
-                className={`mx-[0.12em] inline-block ${word === "Marko" ? "text-zest" : word === "Lindsay's" ? "text-zap" : ""}`}
+                className={`mx-[0.12em] inline-block ${word === "Mark," ? "text-zest" : word === "Lindsay's" ? "text-zap" : ""}`}
                 initial={{ opacity: 0, y: 80, rotate: -20, scale: 0.3 }}
                 animate={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
                 transition={{ delay: 0.3 + i++ * 0.22, type: "spring", stiffness: 260, damping: 14 }}
@@ -59,7 +59,7 @@ export function Splash({ onLick }: { onLick: () => void }) {
           animate={{ scale: [1, 1.08, 1] }}
           transition={{ repeat: Infinity, duration: 0.9 }}
         >
-          Lick it 👅
+          Tongue up? 👅
         </motion.button>
         <motion.button
           className={`btn ${dodges >= 3 ? "" : "btn-ghost"} text-xl`}
@@ -69,7 +69,7 @@ export function Splash({ onLick }: { onLick: () => void }) {
           onPointerEnter={(e) => e.pointerType === "mouse" && dodge(e)}
           onClick={() => dodges >= 3 && onLick()}
         >
-          {dodges >= 3 ? "Fine. Lick it 👅" : ["I abstain", "Nope 😬", "Nice try", "Still no"][dodges]}
+          {dodges >= 3 ? "Fine. Tongue up 👅" : ["I abstain", "Nope 😬", "Nice try", "Still no"][dodges]}
         </motion.button>
       </motion.div>
     </main>
