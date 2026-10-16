@@ -1,11 +1,11 @@
 "use client";
 
-import confetti from "canvas-confetti";
 import { AnimatePresence, motion } from "motion/react";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { directionsUrl, STOPS } from "@/lib/stops";
 import { Finale } from "./Finale";
+import { eruptSharks } from "./sharks";
 import { Splash } from "./Splash";
 
 // Leaflet touches `window` on import.
@@ -38,12 +38,9 @@ export function Crawl() {
   const go = (to: number) => {
     setDir(to > index ? 1 : -1);
     if (to > index && to < DONE) {
-      setFlash(STOPS[to].food ? "FOOD TIME 🍟" : "NEXT STOP!");
+      setFlash(STOPS[to].food ? "CHIPS 🍟" : "NEXT STOP!");
       setTimeout(() => setFlash(null), 1100);
-      setTimeout(
-        () => confetti({ particleCount: 90, spread: 80, origin: { y: 0.7 }, colors: ["#ff2e88", "#ffe14d", "#00e0ff"], disableForReducedMotion: true }),
-        2600,
-      );
+      setTimeout(() => eruptSharks([STOPS[to].emoji]), 2600);
       navigator.vibrate?.(60);
     }
     setIndex(to);

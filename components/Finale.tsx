@@ -3,8 +3,9 @@
 import confetti from "canvas-confetti";
 import { motion } from "motion/react";
 import { useEffect } from "react";
+import { eruptSharks } from "./sharks";
 
-const RAIN = ["🍑", "👅", "🍟", "🍺", "🍑", "🍟", "👅", "🍑", "🍺", "🍟", "🍑", "👅"];
+const RAIN = ["🍑", "🦈", "🍟", "🍺", "🦈", "🍟", "👅", "🍑", "🦈", "🍟", "🍑", "🦈"];
 
 export function Finale({ onRestart }: { onRestart: () => void }) {
   useEffect(() => {
@@ -16,6 +17,7 @@ export function Finale({ onRestart }: { onRestart: () => void }) {
       if (Date.now() < end) requestAnimationFrame(frame);
     };
     frame();
+    eruptSharks(["🍑", "🍟"], 8);
   }, []);
 
   return (
