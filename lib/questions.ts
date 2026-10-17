@@ -18,7 +18,7 @@ export const QUESTIONS: {
   tag?: string;
   retired?: boolean;
 }[] = [
-  { stop: 0, prompt: "What are Mark's middle names?", answer: "Frank Grosvenor / Frank and Grosvenor" },
+  { stop: 0, prompt: "What are Mark's middle names?", answer: "Grosvenor, Frederick", multi: true },
   { stop: 0, prompt: "What are Sarah's middle names?", answer: "Jayne" },
   { stop: 1, prompt: "Where was their first holiday together?", answer: "Colombia", options: ["Peru", "Colombia", "Mexico"] },
   {

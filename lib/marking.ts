@@ -45,15 +45,19 @@ export function isCorrect(answer: string, guess: string): boolean {
 }
 
 /**
- * A list question: the answer's items are separated by ",", and each one named scores a point. Only the first as many
- * guesses as there are items count, so listing every name you can think of doesn't pay.
+ * A list question: the answer's items are separated by ",", and each one named scores a point. Guesses are split on
+ * commas and new lines; a guess that matches nothing whole is tried word by word ("Frederick Grosvenor" without a
+ * comma). Only the first as many guesses as there are items count, so listing every name you can think of doesn't pay.
  */
 export function scoreList(answer: string, guess: string): number {
   const items = answer.split(",").filter((a) => normalise(a));
   const left = [...items];
-  for (const g of guess.split(/[,\n]/).filter((g) => normalise(g)).slice(0, items.length)) {
+  const take = (g: string) => {
     const i = left.findIndex((item) => isCorrect(item, g));
     if (i >= 0) left.splice(i, 1);
-  }
+    return i >= 0;
+  };
+  for (const g of guess.split(/[,\n]/).filter((g) => normalise(g)).slice(0, items.length))
+    if (!take(g)) for (const word of normalise(g).split(" ")) take(word);
   return items.length - left.length;
 }
