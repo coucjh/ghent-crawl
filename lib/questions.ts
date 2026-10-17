@@ -52,7 +52,7 @@ export const QUESTIONS: {
   {
     stop: 5,
     prompt: "Where did Mark propose?",
-    answer: "",
+    answer: "At the kitchen table in Peckham",
     options: ["At the kitchen table in Peckham", "In the car", "At Sarah's parents' home"],
   },
   { stop: 5, prompt: "Who said “I love you” first?", answer: "", retired: true },

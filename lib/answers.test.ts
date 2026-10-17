@@ -27,7 +27,6 @@ it("scores the top 3 artists a point each", () => {
   expect(scoreList(a, "national")).toBe(1);
 });
 
-it("has an answer for every live question but the proposal", () => {
-  const missing = QUESTIONS.filter((q) => !q.retired && !q.answer).map((q) => q.prompt);
-  expect(missing).toEqual(["Where did Mark propose?"]);
+it("has an answer for every live question", () => {
+  expect(QUESTIONS.filter((q) => !q.retired && !q.answer).map((q) => q.prompt)).toEqual([]);
 });
