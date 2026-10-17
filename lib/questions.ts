@@ -19,16 +19,36 @@ export const QUESTIONS: {
   retired?: boolean;
 }[] = [
   { stop: 0, prompt: "What are Mark's middle names?", answer: "Frank Grosvenor / Frank and Grosvenor" },
-  { stop: 0, prompt: "What are Sarah's middle names?", answer: "" },
-  { stop: 1, prompt: "Where was their first holiday together?", answer: "" },
-  // TODO: multiple choice once we have the real answer and two decoys.
-  { stop: 1, prompt: "If Mark could have any job outside of the law, what would it be?", answer: "" },
-  { stop: 2, prompt: "Who is Mark's favourite ever Newcastle player?", answer: "" },
+  { stop: 0, prompt: "What are Sarah's middle names?", answer: "Jayne" },
+  { stop: 1, prompt: "Where was their first holiday together?", answer: "Colombia", options: ["Peru", "Colombia", "Mexico"] },
+  {
+    stop: 1,
+    prompt: "If Mark could have any job outside of the law, what would it be?",
+    answer: "Publican",
+    options: ["Priest", "Publican", "Politician"],
+  },
+  {
+    stop: 2,
+    prompt: "Who is Mark's favourite ever Newcastle player?",
+    answer: "Yohan Cabaye",
+    options: ["Hatem Ben Arfa", "Shay Given", "Yohan Cabaye"],
+  },
   { stop: 2, prompt: "Who was Mark's first kiss?", answer: "", retired: true },
   { stop: 2, prompt: "Name all of Mark's significant girlfriends (as judged by Mark).", answer: "", multi: true, retired: true },
-  { stop: 3, prompt: "Name Mark's top 3 musical artists.", answer: "", multi: true, tag: "🎵 Music round" },
-  { stop: 4, prompt: "Which side of his body is Mark's shark tattoo on?", answer: "" },
-  { stop: 4, prompt: "What does Sarah say is Mark's best trait?", answer: "" },
+  {
+    stop: 3,
+    prompt: "Name Mark's top 3 musical artists.",
+    answer: "The National, LCD Soundsystem / LCD Sound System / LCD, Frank Ocean",
+    multi: true,
+    tag: "🎵 Music round",
+  },
+  { stop: 4, prompt: "Which side of his body is Mark's shark tattoo on?", answer: "Right / Right side / Right hand side" },
+  {
+    stop: 4,
+    prompt: "What does Sarah say is Mark's best trait?",
+    answer: "His calmness",
+    options: ["His quads", "His calmness", "His big sexy head"],
+  },
   // TODO: multiple choice once we have the real answer and two decoys.
   { stop: 5, prompt: "Where did Mark propose?", answer: "" },
   { stop: 5, prompt: "Who said “I love you” first?", answer: "", retired: true },
@@ -42,10 +62,14 @@ export const QUESTIONS: {
   {
     stop: 5,
     prompt: "What date did they get engaged?",
-    answer: "20 December 2025",
-    options: ["13 December 2025", "20 December 2025", "24 December 2025"],
+    answer: "19 December 2025",
+    options: ["29 November 2025", "7 December 2025", "19 December 2025"],
   },
-  { stop: 2, prompt: "What was the name of the street of the first place they lived in London?", answer: "" },
+  {
+    stop: 2,
+    prompt: "What was the name of the street of the first place they lived in London?",
+    answer: "Hanley Road / Hanley Rd / Hanley",
+  },
 ];
 
 export const stopOf = (n: number) => QUESTIONS[n].stop;
