@@ -49,8 +49,12 @@ export const QUESTIONS: {
     answer: "His calmness",
     options: ["His quads", "His calmness", "His big sexy head"],
   },
-  // TODO: multiple choice once we have the real answer and two decoys.
-  { stop: 5, prompt: "Where did Mark propose?", answer: "" },
+  {
+    stop: 5,
+    prompt: "Where did Mark propose?",
+    answer: "",
+    options: ["At the kitchen table in Peckham", "In the car", "At Sarah's parents' home"],
+  },
   { stop: 5, prompt: "Who said “I love you” first?", answer: "", retired: true },
   {
     stop: 3,
