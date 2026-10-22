@@ -118,20 +118,3 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .pin-active, .route-draw { animation: none; }
 }
-
-.boat {
-  font-size: 34px;
-  line-height: 1;
-  filter: drop-shadow(2px 2px 0 var(--color-ink));
-  animation: bob 0.8s ease-in-out infinite;
-}
-@keyframes bob {
-  0%, 100% { transform: translateY(0) rotate(-6deg); }
-  50% { transform: translateY(-4px) rotate(6deg); }
-}
-@keyframes waves {
-  to { transform: translateX(-50%); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .boat { animation: none; }
-}
